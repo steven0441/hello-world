@@ -4,10 +4,14 @@ Steel Detailing Quick Reference — Excel Generator
 Generates steel_detailing_reference.xlsx for shop/drafting use.
 """
 
+import io
+import math
+
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.drawing.image import Image as XLImage
 
 # ── Style constants ──────────────────────────────────────────────────────────
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
@@ -49,6 +53,16 @@ def banner(ws, row, text, span):
     c.font = BANNER_FONT
     c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws.row_dimensions[row].height = 22
+    # "← Dashboard" back button on the first banner of every non-Dashboard tab
+    if row == 1 and ws.title != "Dashboard":
+        btn_col = span + 2
+        btn = ws.cell(row=1, column=btn_col)
+        btn.value = "\u2190 Dashboard"
+        btn.hyperlink = "#Dashboard!A1"
+        btn.fill = PatternFill("solid", fgColor="595959")
+        btn.font = Font(name="Calibri", bold=True, color="FFFFFF", size=10)
+        btn.alignment = Alignment(horizontal="center", vertical="center")
+        ws.column_dimensions[get_column_letter(btn_col)].width = 15
     return row + 1
 
 def headers(ws, row, labels):
@@ -619,6 +633,164 @@ MIN_BEND_RADIUS = [
     ("A53 Pipe",         "A53-B",    "3D min","D = pipe OD; check wall thickness"),
     ("Flat bar A36",     "A36",      "1.0t",  "Hot-roll; consult fabricator for CRS"),
 ]
+
+# ── Bending diagram (matplotlib) ─────────────────────────────────────────────
+def generate_bend_diagram():
+    """Create a 2-panel reference diagram for the Bending Calculator tab.
+    Returns a BytesIO PNG buffer, or None if matplotlib is unavailable."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon as MplPoly, Rectangle, FancyArrowPatch
+    except ImportError:
+        return None
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    fig.patch.set_facecolor("#EEF2F7")
+
+    # ── Panel 1: Side view of bent plate ──────────────────────────────────
+    ax1.set_aspect("equal")
+    ax1.set_facecolor("#EEF2F7")
+    ax1.set_xlim(-1.8, 4.2)
+    ax1.set_ylim(-1.8, 4.2)
+    ax1.axis("off")
+    ax1.set_title("Bend Geometry (Side View)", fontweight="bold", fontsize=12,
+                  color="#1F4E79", pad=8)
+
+    Ri  = 0.5   # inside bend radius (visual units)
+    t   = 0.28  # plate thickness (visual)
+    Ro  = Ri + t
+    Rn  = Ri + 0.41 * t   # neutral axis (K = 0.41)
+    L   = 2.2   # leg length (visual)
+    N   = 30    # arc resolution
+
+    thetas = [math.radians(i * 90 / N) for i in range(N + 1)]  # 0° → 90°
+    inner_arc = [(Ri * math.cos(a), Ri * math.sin(a)) for a in thetas]
+    outer_arc = [(Ro * math.cos(a), Ro * math.sin(a)) for a in thetas]
+
+    # Plate polygon (clockwise from top-left of leg1):
+    # outer leg1 | inner leg1 | inner arc | inner leg2 | outer leg2 |
+    # small connector | outer arc (reversed) | small connector
+    poly = (
+        [(-t, Ro + L), (0, Ro + L)]        # top of leg1 (outer → inner)
+        + [(0, Ri)]                          # down inner leg1 to arc start
+        + inner_arc[1:-1]                    # inner arc
+        + [(Ri, 0), (Ri + L, 0)]            # inner leg2
+        + [(Ri + L, -t), (Ro, -t), (Ro, 0)] # outer leg2 + connector
+        + list(reversed(outer_arc[1:-1]))    # outer arc (0° → 90°, reversed)
+        + [(0, Ro), (-t, Ro), (-t, Ro + L)] # connector + close
+    )
+
+    plate = MplPoly(poly, closed=True, facecolor="#2E74B5",
+                    edgecolor="#1F4E79", linewidth=1.8, alpha=0.88, zorder=2)
+    ax1.add_patch(plate)
+
+    # Neutral axis arc (dashed gold)
+    na_x = [Rn * math.cos(a) for a in thetas]
+    na_y = [Rn * math.sin(a) for a in thetas]
+    ax1.plot(na_x, na_y, color="#FFC000", linewidth=1.8, linestyle="--",
+             zorder=3, label="Neutral axis (K·t from inside)")
+
+    # ── Dimension annotations ──
+
+    # Thickness "t" — horizontal arrow on top of leg1
+    y_t = Ro + L - 0.4
+    ax1.annotate("", xy=(-t, y_t), xytext=(0, y_t),
+                 arrowprops=dict(arrowstyle="<->", color="#1F1F1F", lw=1.2), zorder=4)
+    ax1.text(-t / 2, y_t + 0.06, "t", ha="center", va="bottom",
+             fontsize=11, fontweight="bold", zorder=4)
+
+    # Inside radius "R" — diagonal arrow from center to arc mid-point
+    mid_a = math.radians(45)
+    ax1.annotate("", xy=(Ri * math.cos(mid_a), Ri * math.sin(mid_a)), xytext=(0, 0),
+                 arrowprops=dict(arrowstyle="-|>", color="#C00000", lw=1.6), zorder=4)
+    ax1.text(0.05, 0.18, "R", ha="left", va="bottom", fontsize=11,
+             fontweight="bold", color="#C00000", zorder=4)
+
+    # Angle arc "A°"
+    a_arc_r = 1.3
+    a_arc_x = [a_arc_r * math.cos(a) for a in thetas]
+    a_arc_y = [a_arc_r * math.sin(a) for a in thetas]
+    ax1.plot(a_arc_x, a_arc_y, color="#595959", linewidth=1.0, linestyle=":", zorder=3)
+    ax1.text(a_arc_r * math.cos(math.radians(45)) + 0.12,
+             a_arc_r * math.sin(math.radians(45)) + 0.08,
+             "A°", ha="left", va="bottom", fontsize=10, color="#595959", zorder=4)
+
+    # Leg 1 length brace (right side of leg1)
+    bx = 0.55
+    ax1.annotate("", xy=(bx, Ri), xytext=(bx, Ri + L),
+                 arrowprops=dict(arrowstyle="<->", color="#375623", lw=1.2), zorder=4)
+    ax1.text(bx + 0.12, Ri + L / 2, "Leg 1", ha="left", va="center",
+             fontsize=10, color="#375623", fontweight="bold", zorder=4)
+
+    # Leg 2 length brace (below leg2)
+    by = -t - 0.42
+    ax1.annotate("", xy=(Ri, by), xytext=(Ri + L, by),
+                 arrowprops=dict(arrowstyle="<->", color="#375623", lw=1.2), zorder=4)
+    ax1.text(Ri + L / 2, by - 0.12, "Leg 2", ha="center", va="top",
+             fontsize=10, color="#375623", fontweight="bold", zorder=4)
+
+    ax1.legend(loc="upper right", fontsize=8, framealpha=0.7)
+
+    # ── Panel 2: Flat blank layout ─────────────────────────────────────────
+    ax2.set_facecolor("#EEF2F7")
+    ax2.set_xlim(-0.4, 6.4)
+    ax2.set_ylim(-1.4, 2.2)
+    ax2.axis("off")
+    ax2.set_title("Flat Blank Layout", fontweight="bold", fontsize=12,
+                  color="#1F4E79", pad=8)
+
+    leg1_w = 2.1
+    ba_w   = 0.9
+    leg2_w = 2.1
+    total  = leg1_w + ba_w + leg2_w
+    bh     = 0.55   # bar height
+
+    ax2.add_patch(Rectangle((0, 0), leg1_w, bh, facecolor="#2E74B5",
+                             edgecolor="#1F4E79", lw=1.8))
+    ax2.text(leg1_w / 2, bh / 2, "Leg 1", ha="center", va="center",
+             fontsize=12, fontweight="bold", color="white")
+
+    ax2.add_patch(Rectangle((leg1_w, 0), ba_w, bh, facecolor="#FFC000",
+                             edgecolor="#BF8F00", lw=1.8))
+    ax2.text(leg1_w + ba_w / 2, bh / 2, "BA", ha="center", va="center",
+             fontsize=11, fontweight="bold", color="#3F1F00")
+
+    ax2.add_patch(Rectangle((leg1_w + ba_w, 0), leg2_w, bh, facecolor="#2E74B5",
+                             edgecolor="#1F4E79", lw=1.8))
+    ax2.text(leg1_w + ba_w + leg2_w / 2, bh / 2, "Leg 2", ha="center", va="center",
+             fontsize=12, fontweight="bold", color="white")
+
+    # "Bend Allowance" label above BA section
+    ax2.text(leg1_w + ba_w / 2, bh + 0.12,
+             "Bend\nAllowance\n(arc length)",
+             ha="center", va="bottom", fontsize=9, color="#BF8F00",
+             fontweight="bold", linespacing=1.3)
+
+    # Blank Length brace below
+    by2 = -0.35
+    ax2.annotate("", xy=(0, by2), xytext=(total, by2),
+                 arrowprops=dict(arrowstyle="<->", color="#595959", lw=1.6))
+    ax2.text(total / 2, by2 - 0.14, "Flat Blank Length",
+             ha="center", va="top", fontsize=11, fontweight="bold", color="#595959")
+
+    # Formula note box
+    ax2.text(total / 2, 1.85,
+             "Blank = Leg 1  +  Leg 2  +  BA  −  2 × OSSB",
+             ha="center", va="center", fontsize=10, color="#843C0C",
+             fontstyle="italic",
+             bbox=dict(boxstyle="round,pad=0.4", facecolor="#FCE4D6",
+                       edgecolor="#843C0C", alpha=0.9))
+
+    plt.tight_layout(pad=1.5)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=120, bbox_inches="tight",
+                facecolor=fig.get_facecolor())
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
 
 # ── Tab builders ─────────────────────────────────────────────────────────────
 def build_shapes(wb):
@@ -1200,6 +1372,32 @@ def build_bending(wb):
         row += 1
 
     set_widths(ws, {"A": 32, "B": 16, "C": 40, "D": 10, "E": 10, "F": 10})
+
+    # ── Embed bend reference diagram ──────────────────────────────────────────
+    row += 1
+    diag_banner_row = row
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+    diag_hdr = ws.cell(row=row, column=1,
+                       value="BEND GEOMETRY REFERENCE DIAGRAMS  (Side view + Flat blank layout)")
+    diag_hdr.fill = PatternFill("solid", fgColor="1F4E79")
+    diag_hdr.font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    diag_hdr.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[row].height = 22
+    row += 1
+
+    img_buf = generate_bend_diagram()
+    if img_buf:
+        try:
+            img = XLImage(img_buf)
+            # ~13:5 aspect ratio; fit in ~900px wide × ~346px tall
+            img.width  = 900
+            img.height = 346
+            ws.add_image(img, f"A{row}")
+            # Reserve rows for the image (approx 346px / 15pt per row ≈ 23 rows)
+            for r in range(row, row + 23):
+                ws.row_dimensions[r].height = 15
+        except Exception:
+            pass
 
 
 def build_dashboard(wb):
