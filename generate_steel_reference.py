@@ -145,6 +145,20 @@ W_SHAPES = [
     ("W16x36", 15.86, 6.985, 0.295, 0.430, 36.0, 10.6),
     ("W18x35", 17.70, 6.000, 0.300, 0.425, 35.0, 10.3),
     ("W18x46", 18.06, 6.060, 0.360, 0.605, 46.0, 13.5),
+    ("W21x44", 20.66, 6.500, 0.350, 0.530, 44.0, 13.0),
+    ("W21x57", 21.06, 6.555, 0.405, 0.650, 57.0, 16.7),
+    ("W21x68", 21.13, 8.270, 0.430, 0.685, 68.0, 20.0),
+    ("W24x55", 23.57, 7.005, 0.395, 0.505, 55.0, 16.2),
+    ("W24x76", 23.92, 8.990, 0.440, 0.680, 76.0, 22.4),
+    ("W24x94", 24.31, 9.065, 0.515, 0.875, 94.0, 27.7),
+    ("W27x84", 26.71, 9.960, 0.460, 0.640, 84.0, 24.8),
+    ("W27x94", 26.92,10.010, 0.490, 0.745, 94.0, 27.7),
+    ("W30x90", 29.53,10.400, 0.470, 0.610, 90.0, 26.3),
+    ("W30x108",29.83,10.475, 0.545, 0.760,108.0, 31.7),
+    ("W33x118",32.86,11.480, 0.550, 0.740,118.0, 34.7),
+    ("W33x141",33.30,11.535, 0.605, 0.960,141.0, 41.6),
+    ("W36x135",35.55,11.950, 0.600, 0.790,135.0, 39.7),
+    ("W36x160",36.01,12.000, 0.650, 1.020,160.0, 47.0),
 ]
 
 C_SHAPES = [
@@ -588,6 +602,24 @@ BOLT_TORQUE = [
     ('1-1/4"',"—", "3/8\" – 2\"", "1460","1825"),
 ]
 
+# ── Bending / bend allowance data ────────────────────────────────────────────
+# K-factor: portion of thickness at neutral axis
+# 0.33 = sharp bend (t/R > 1), 0.41 = air bend typical, 0.50 = radius bend
+KFACTOR_TABLE = [
+    ("Sharp bend  (inside R < thickness)",    "0.33", "Tightest bend; expect more springback"),
+    ("Standard air bend  (R ≈ thickness)",    "0.41", "Most common shop bending"),
+    ("Radius bend  (R = 2–4× thickness)",     "0.45", "Smoother; less distortion"),
+    ("Large radius  (R > 4× thickness)",      "0.50", "Near-neutral axis; minimal thinning"),
+]
+MIN_BEND_RADIUS = [
+    # (Material, Grade, Min R as multiple of t)
+    ("A36 Plate",        "A36",      "1.0t",  "Across grain; 1.5t with grain"),
+    ("A572 Gr50 Plate",  "A572",     "1.5t",  "Higher strength = less ductility"),
+    ("A500 HSS",         "A500 B/C", "N/A",   "Do not cold bend HSS in field"),
+    ("A53 Pipe",         "A53-B",    "3D min","D = pipe OD; check wall thickness"),
+    ("Flat bar A36",     "A36",      "1.0t",  "Hot-roll; consult fabricator for CRS"),
+]
+
 # ── Tab builders ─────────────────────────────────────────────────────────────
 def build_shapes(wb):
     ws = wb["Shapes"]
@@ -613,6 +645,8 @@ def build_shapes(wb):
     row = headers(ws, row, ["Designation","H (in)","B (in)","Wall t (in)","Wt (lb/ft)","Area (in²)","",""])
     row = data_rows(ws, row, [(d,a,b,c,e,f,"","") for (d,a,b,c,e,f) in HSS_SHAPES], center_cols={2,3,4,5,6})
 
+    # AutoFilter on every section header row so user can sort/filter any column
+    ws.auto_filter.ref = f"A2:H{ws.max_row}"
     set_widths(ws, {"A":20,"B":11,"C":11,"D":12,"E":12,"F":12,"G":12,"H":28})
 
 
@@ -1077,13 +1111,195 @@ def build_references(wb):
     set_widths(ws, {"A": 18, "B": 38, "C": 16, "D": 42, "E": 16, "F": 16})
 
 
+def build_bending(wb):
+    ws = wb["Bending"]
+    ws.sheet_properties.tabColor = "E36C09"
+    ws.freeze_panes = "A2"
+
+    row = banner(ws, 1, "BENDING CALCULATOR  —  Bend Allowance, Blank Length & Setback", 6)
+
+    # ── Main calculator ──
+    row = banner(ws, row, "INPUTS  (enter values in YELLOW cells)", 6)
+    fields = [
+        ("Material Thickness  t  (in):",    "B", 0.375),
+        ("Inside Bend Radius  R  (in):",    "B", 0.375),
+        ("Bend Angle  A  (degrees):",       "B", 90),
+        ("Leg 1 Length  (in):",             "B", 6.0),
+        ("Leg 2 Length  (in):",             "B", 6.0),
+        ("K-Factor  (see table below):",    "B", 0.41),
+    ]
+    input_rows = {}
+    for label, col, default in fields:
+        label_cell(ws, row, 1, label)
+        input_cell(ws, row, 2, default)
+        input_rows[label] = row
+        row += 1
+
+    t_row  = input_rows["Material Thickness  t  (in):"]
+    r_row  = input_rows["Inside Bend Radius  R  (in):"]
+    a_row  = input_rows["Bend Angle  A  (degrees):"]
+    l1_row = input_rows["Leg 1 Length  (in):"]
+    l2_row = input_rows["Leg 2 Length  (in):"]
+    k_row  = input_rows["K-Factor  (see table below):"]
+
+    row += 1
+    row = banner(ws, row, "RESULTS  (auto-calculated — do not edit green cells)", 6)
+
+    # Bend Allowance = π × (R + K×T) × (A/180)
+    label_cell(ws, row, 1, "Bend Allowance  BA  (in):")
+    ba_formula = f"=PI()*(B{r_row}+B{k_row}*B{t_row})*(B{a_row}/180)"
+    output_cell(ws, row, 2, ba_formula, "0.0000")
+    ws.cell(row=row, column=3, value="Formula:  π × (R + K×t) × (A/180)").font = NOTE_FONT
+    ba_row = row
+    row += 1
+
+    # Outside Setback = tan(A/2) × (R + T)
+    label_cell(ws, row, 1, "Outside Setback  OSSB  (in):")
+    ossb_formula = f"=TAN(RADIANS(B{a_row}/2))*(B{r_row}+B{t_row})"
+    output_cell(ws, row, 2, ossb_formula, "0.0000")
+    ws.cell(row=row, column=3, value="Formula:  tan(A/2) × (R + t)").font = NOTE_FONT
+    ossb_row = row
+    row += 1
+
+    # Blank length = L1 + L2 + BA - 2×OSSB
+    label_cell(ws, row, 1, "Flat Blank Length  (in):")
+    blank_formula = f"=B{l1_row}+B{l2_row}+B{ba_row}-2*B{ossb_row}"
+    output_cell(ws, row, 2, blank_formula, "0.0000")
+    ws.cell(row=row, column=3, value="Formula:  Leg1 + Leg2 + BA − 2×OSSB").font = NOTE_FONT
+    row += 1
+
+    # Outside radius
+    label_cell(ws, row, 1, "Outside Bend Radius  (in):")
+    output_cell(ws, row, 2, f"=B{r_row}+B{t_row}", "0.0000")
+    row += 2
+
+    # ── K-factor table ──
+    row = banner(ws, row, "K-FACTOR GUIDE", 6)
+    row = headers(ws, row, ["Bend Type", "K-Factor", "Notes", "", "", ""])
+    row = data_rows(ws, row, [(b, k, n, "", "", "") for (b, k, n) in KFACTOR_TABLE], center_cols={2})
+
+    row += 1
+    row = banner(ws, row, "MINIMUM BEND RADIUS BY MATERIAL", 6)
+    row = headers(ws, row, ["Material", "Grade", "Min Radius", "Notes", "", ""])
+    row = data_rows(ws, row, [(m, g, r, n, "", "") for (m, g, r, n) in MIN_BEND_RADIUS], center_cols={2, 3})
+
+    row += 2
+    bend_notes = [
+        "• BA = Bend Allowance — the arc length consumed by the bend (added to blank, not subtracted).",
+        "• OSSB = Outside Setback — distance from the apex to the start of the bend.",
+        "• Blank Length = Leg1 + Leg2 + BA − 2×OSSB  (the flat length before bending).",
+        "• K-factor of 0.41 works well for most A36 air-bent plate in a press brake.",
+        "• Always add a test piece before running production parts — springback varies by heat.",
+        "• For pipe/tube bending, use CLR (centerline radius) = inside radius + OD/2.",
+        "• Reference: Machinery's Handbook / AISC Design Guide 9 / press brake manufacturer tables.",
+    ]
+    for n in bend_notes:
+        c = ws.cell(row=row, column=1, value=n)
+        c.font = NOTE_FONT
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+        row += 1
+
+    set_widths(ws, {"A": 32, "B": 16, "C": 40, "D": 10, "E": 10, "F": 10})
+
+
+def build_dashboard(wb):
+    """First tab — navigation hub with jump links to every sheet."""
+    ws = wb["Dashboard"]
+    ws.sheet_properties.tabColor = "1F4E79"
+
+    # Title
+    ws.merge_cells("A1:F1")
+    title = ws["A1"]
+    title.value = "STEEL DETAILING QUICK REFERENCE"
+    title.fill = PatternFill("solid", fgColor="1F4E79")
+    title.font = Font(name="Calibri", bold=True, color="FFFFFF", size=18)
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 40
+
+    ws.merge_cells("A2:F2")
+    sub = ws["A2"]
+    sub.value = "Click any button below to jump directly to that section"
+    sub.font = Font(name="Calibri", italic=True, color="595959", size=11)
+    sub.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 20
+
+    # Navigation buttons — (row, col, label, sheet_target, color)
+    buttons = [
+        (4,  1, "SHAPES",        "Shapes",        "1F4E79"),
+        (4,  3, "PLATE",         "Plate",         "375623"),
+        (4,  5, "PIPE",          "Pipe",          "7030A0"),
+        (7,  1, "MATERIALS",     "Materials",     "843C0C"),
+        (7,  3, "HANDRAIL",      "Handrail",      "538135"),
+        (7,  5, "PIPE SUPPORTS", "Pipe Supports", "C55A11"),
+        (10, 1, "PLATFORMS",     "Platforms",     "2E74B5"),
+        (10, 3, "BOLTS",         "Bolts",         "C00000"),
+        (10, 5, "WELDS",         "Welds",         "E36C09"),
+        (13, 1, "BENDING CALC",  "Bending",       "E36C09"),
+        (13, 3, "UNIT CONVERTER","Converter",     "00B0F0"),
+        (13, 5, "REFERENCES",    "References",    "404040"),
+    ]
+
+    for (r, c, label, sheet, color) in buttons:
+        # Merge 2 cols wide, 2 rows tall per button
+        ws.merge_cells(start_row=r, start_column=c, end_row=r+1, end_column=c+1)
+        cell = ws.cell(row=r, column=c)
+        cell.value = label
+        cell.hyperlink = f"#{sheet}!A1"
+        cell.fill = PatternFill("solid", fgColor=color)
+        cell.font = Font(name="Calibri", bold=True, color="FFFFFF", size=13)
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = Border(
+            left=Side(style="medium", color="FFFFFF"),
+            right=Side(style="medium", color="FFFFFF"),
+            top=Side(style="medium", color="FFFFFF"),
+            bottom=Side(style="medium", color="FFFFFF"),
+        )
+        ws.row_dimensions[r].height = 30
+        ws.row_dimensions[r+1].height = 30
+
+    # Quick tips section
+    tip_row = 17
+    ws.merge_cells(f"A{tip_row}:F{tip_row}")
+    tip_hdr = ws.cell(row=tip_row, column=1, value="QUICK TIPS FOR BEGINNERS")
+    tip_hdr.fill = PatternFill("solid", fgColor="D9E1F2")
+    tip_hdr.font = Font(name="Calibri", bold=True, size=11, color="1F4E79")
+    tip_hdr.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[tip_row].height = 20
+    tip_row += 1
+
+    tips = [
+        ("Plate weight:",   "thickness (in) × 40.8 × length (ft) × width (ft) = lbs"),
+        ("Pipe weight:",    "go to Pipe tab → pick NPS + schedule → enter length → done"),
+        ("Weld size min:",  "go to Welds tab → min fillet size table → use thicker plate"),
+        ("Bolt holes:",     "go to Bolts tab → STD hole = bolt dia + 1/16\""),
+        ("Shape lookup:",   "go to Shapes tab → use the filter arrows on any column header"),
+        ("Where to verify:","go to References tab → click 'Open Source' for official document"),
+        ("Unit convert:",   "go to Converter tab → type your number → result auto-fills"),
+        ("Blank length:",   "go to Bending tab → enter t, R, angle, legs → get flat size"),
+    ]
+    for label, val in tips:
+        ws.merge_cells(f"A{tip_row}:A{tip_row}")
+        lc = ws.cell(row=tip_row, column=1, value=label)
+        lc.font = Font(name="Calibri", bold=True, size=10)
+        lc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws.merge_cells(f"B{tip_row}:F{tip_row}")
+        vc = ws.cell(row=tip_row, column=2, value=val)
+        vc.font = Font(name="Calibri", size=10)
+        vc.alignment = Alignment(horizontal="left", vertical="center")
+        ws.row_dimensions[tip_row].height = 18
+        tip_row += 1
+
+    set_widths(ws, {"A": 18, "B": 18, "C": 18, "D": 18, "E": 18, "F": 18})
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     wb = Workbook()
-    wb.active.title = "Shapes"
-    for name in ["Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms","Bolts","Welds","Converter","References"]:
+    wb.active.title = "Dashboard"
+    for name in ["Shapes","Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms","Bolts","Welds","Bending","Converter","References"]:
         wb.create_sheet(name)
 
+    build_dashboard(wb)
     build_shapes(wb)
     build_plate(wb)
     build_pipe(wb)
@@ -1093,6 +1309,7 @@ def main():
     build_platforms(wb)
     build_bolts(wb)
     build_welds(wb)
+    build_bending(wb)
     build_converter(wb)
     build_references(wb)
 
