@@ -381,6 +381,50 @@ PLATFORM_NOTES = [
     ("Overhead Clearance",    "7'-0\" min",             "OSHA walkway"),
 ]
 
+# (Bolt, Grade, Fy ksi, Fu ksi, Shear ksi, Tension ksi, Notes)
+BOLT_GRADES = [
+    ("A307",    "Low carbon", "N/A", "60",  "27.0", "45.0", "Non-structural; anchor bolts, light connections"),
+    ("A325",    "Med carbon", "92", "120", "54.0", "90.0",  "Standard structural bolt; most common"),
+    ("A490",    "Alloy steel","130","150", "67.5","112.5",  "High-strength; heavier connections"),
+    ("F1554 Gr36","Low carbon","36",  "58", "N/A",  "N/A",  "Anchor rods; weldable"),
+    ("F1554 Gr55","Med carbon","55",  "75", "N/A",  "N/A",  "Anchor rods; higher strength"),
+    ("F1554 Gr105","Alloy",   "105","125", "N/A",  "N/A",  "Anchor rods; heavy equipment"),
+    ("A36 Threaded","Low carbon","36","58","N/A",   "N/A",  "All-thread rod; misc bracing/hangers"),
+]
+
+# (Bolt Dia, STD Hole, OVS Hole, SSLOT W, SSLOT L, LSLOT W, LSLOT L)
+HOLE_SIZES = [
+    ('1/2"',  '9/16"',  '5/8"',  '9/16"',  '11/16"', '9/16"',  '1-1/4"'),
+    ('5/8"',  '11/16"', '13/16"','11/16"', '7/8"',   '11/16"', '1-9/16"'),
+    ('3/4"',  '13/16"', '15/16"','13/16"', '1"',     '13/16"', '1-7/8"'),
+    ('7/8"',  '15/16"', '1-1/16"','15/16"','1-1/8"', '15/16"', '2-3/16"'),
+    ('1"',    '1-1/16"','1-1/4"','1-1/16"','1-5/16"','1-1/16"','2-1/2"'),
+    ('1-1/8"','1-3/16"','1-3/8"','1-3/16"','1-7/16"','1-3/16"','2-13/16"'),
+    ('1-1/4"','1-5/16"','1-1/2"','1-5/16"','1-9/16"','1-5/16"','3-1/8"'),
+]
+
+# (Bolt Dia, Min Edge Dist (sheared), Min Edge Dist (rolled/saw), Min Spacing)
+BOLT_SPACING = [
+    ('1/2"',  '7/8"',  '3/4"',  '1-1/2"'),
+    ('5/8"',  '1-1/8"','7/8"',  '1-7/8"'),
+    ('3/4"',  '1-1/4"','1"',    '2-1/4"'),
+    ('7/8"',  '1-1/2"','1-1/8"','2-5/8"'),
+    ('1"',    '1-3/4"','1-1/4"','3"'),
+    ('1-1/8"','2"',    '1-1/2"','3-3/8"'),
+    ('1-1/4"','2-1/4"','1-5/8"','3-3/4"'),
+]
+
+# (Bolt Dia, SCH 40 Pipe thk, Plate thk range, Torque ft-lbs A325, Torque ft-lbs A490)
+BOLT_TORQUE = [
+    ('1/2"',  "—", "3/16\" – 1\"", "85",  "107"),
+    ('5/8"',  "—", "3/16\" – 1\"", "170", "212"),
+    ('3/4"',  "—", "1/4\" – 1-1/2\"", "300", "375"),
+    ('7/8"',  "—", "1/4\" – 2\"", "490", "612"),
+    ('1"',    "—", "1/4\" – 2\"", "730", "912"),
+    ('1-1/8"',"—", "3/8\" – 2\"", "1050","1312"),
+    ('1-1/4"',"—", "3/8\" – 2\"", "1460","1825"),
+]
+
 # ── Tab builders ─────────────────────────────────────────────────────────────
 def build_shapes(wb):
     ws = wb["Shapes"]
@@ -646,11 +690,53 @@ def build_platforms(wb):
     set_widths(ws, {"A":10,"B":30,"C":14,"D":20,"E":12,"F":8,"G":14,"H":14})
 
 
+def build_bolts(wb):
+    ws = wb["Bolts"]
+    ws.sheet_properties.tabColor = "C00000"
+    ws.freeze_panes = "A3"
+
+    row = banner(ws, 1, "BOLT & ANCHOR ROD GRADES  (AISC / ASTM)", 7)
+    row = headers(ws, row, ["Spec","Grade","Fy (ksi)","Fu (ksi)","Shear (ksi)","Tension (ksi)","Notes"])
+    row = data_rows(ws, row, BOLT_GRADES, center_cols={3,4,5,6})
+
+    row += 1
+    row = banner(ws, row, "STANDARD HOLE SIZES  (AISC Table J3.3)", 7)
+    row = headers(ws, row, ["Bolt Dia","STD Hole","OVS Hole","SSLOT Width","SSLOT Length","LSLOT Width","LSLOT Length"])
+    row = data_rows(ws, row, HOLE_SIZES, center_cols={1,2,3,4,5,6,7})
+
+    row += 1
+    row = banner(ws, row, "MIN EDGE DISTANCE & BOLT SPACING  (AISC Table J3.4)", 7)
+    row = headers(ws, row, ["Bolt Dia","Min Edge (sheared)","Min Edge (rolled/saw)","Min Spacing (3x dia)","","",""])
+    row = data_rows(ws, row, [(d,a,b,c,"","","") for (d,a,b,c) in BOLT_SPACING], center_cols={1,2,3,4})
+
+    row += 1
+    row = banner(ws, row, "APPROXIMATE SNUG-TIGHT TORQUE  (Reference only — follow approved ITP)", 7)
+    row = headers(ws, row, ["Bolt Dia","","Grip Range","A325 Torque (ft-lbs)","A490 Torque (ft-lbs)","",""])
+    row = data_rows(ws, row, [(d,"",g,t1,t2,"","") for (d,_,g,t1,t2) in BOLT_TORQUE], center_cols={1,3,4,5})
+
+    row += 2
+    notes = [
+        "• STD = Standard hole | OVS = Oversized | SSLOT = Short-slot | LSLOT = Long-slot",
+        "• A325 and A490 are now superseded by ASTM F3125 Gr A325/A490 — same dimensions/strengths",
+        "• Min spacing = 2-2/3 × bolt dia (preferred 3×); min edge = per table above",
+        "• For slip-critical connections use Class A or B faying surface — see engineer",
+        "• Torque values are approximate — always follow the project Inspection & Test Plan (ITP)",
+        "• F1554 anchor rods: embed length = 12× dia minimum unless engineer specifies otherwise",
+    ]
+    for n in notes:
+        c = ws.cell(row=row, column=1, value=n)
+        c.font = NOTE_FONT
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=7)
+        row += 1
+
+    set_widths(ws, {"A":12,"B":14,"C":16,"D":18,"E":18,"F":14,"G":36})
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     wb = Workbook()
     wb.active.title = "Shapes"
-    for name in ["Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms"]:
+    for name in ["Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms","Bolts"]:
         wb.create_sheet(name)
 
     build_shapes(wb)
@@ -660,6 +746,7 @@ def main():
     build_handrail(wb)
     build_pipe_supports(wb)
     build_platforms(wb)
+    build_bolts(wb)
 
     out = "steel_detailing_reference.xlsx"
     wb.save(out)
