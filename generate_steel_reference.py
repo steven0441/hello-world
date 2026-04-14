@@ -381,6 +381,169 @@ PLATFORM_NOTES = [
     ("Overhead Clearance",    "7'-0\" min",             "OSHA walkway"),
 ]
 
+# ── Weld data (AWS D1.1) ─────────────────────────────────────────────────────
+MIN_FILLET = [
+    ("To 1/4\" incl.",       "1/8\"",  "Do not weld thinner than 1/8\""),
+    ("Over 1/4\" to 1/2\"",  "3/16\"", "Most common shop minimum"),
+    ("Over 1/2\" to 3/4\"",  "1/4\"",  ""),
+    ("Over 3/4\"",           "5/16\"", "Minimum for heavy plate"),
+]
+MAX_FILLET_PASS = [
+    ("Flat / Horizontal",   "5/16\"", "AWS D1.1 limit per pass"),
+    ("Vertical",            "1/4\"",  ""),
+    ("Overhead",            "1/4\"",  ""),
+]
+MAX_FILLET_EDGE = [
+    ("< 1/4\" thick edge",  "= plate thickness",       "Full-thickness weld allowed"),
+    (">= 1/4\" thick edge", "= plate thickness - 1/16\"","Must leave 1/16\" land"),
+]
+PREQUALIFIED_JOINTS = [
+    ("Square Groove, no gap",  "B-L1a",  "0",       "—",   "t <= 5/16\" SMAW; <= 3/8\" SAW"),
+    ("Square Groove, w/ gap",  "B-L1b",  "1/4\" max","—",  "Both sides or back-gouge"),
+    ("Single-V, 60°",          "B-U1a",  "0–1/4\"", "60°", "Most common groove weld"),
+    ("Single-Bevel, 45°",      "B-U2",   "0–1/8\"", "45°", "One-sided access joints"),
+    ("Single-V, 45°",          "B-U1",   "0–1/8\"", "45°", ""),
+    ("Double-V, 60°",          "B-U1b",  "0–1/8\"", "60°", "Both sides; balanced distortion"),
+]
+ELECTRODE_MATCH = [
+    ("A36",     "58",  "E70xx",  "Overmatch is fine and common"),
+    ("A572 Gr50","65", "E70xx",  "70 ksi filler satisfies 65 ksi base"),
+    ("A992",    "65",  "E70xx",  "Same as A572 Gr50 in practice"),
+    ("A500 B/C","58",  "E70xx",  "E7018 preferred for thicker walls"),
+    ("A53-B",   "60",  "E70xx",  "E7018 (low hydrogen) per most WPS"),
+    ("A106-B",  "60",  "E7018",  "Preheat per AWS D1.1 when t > 1\""),
+]
+
+# ── References data ───────────────────────────────────────────────────────────
+REFERENCES = [
+    # (Standard, Full Title, Section Used, What It Covers, Access, URL)
+    ("AISC SCM 16th Ed",
+     "Steel Construction Manual, 16th Edition",
+     "Part 1 — Section Tables",
+     "W/C/Angle/HSS/Pipe properties; connection design",
+     "Free (login req.)",
+     "https://www.aisc.org/steel-construction-manual-16th-ed"),
+
+    ("AISC Table J3.3",
+     "SCM Table J3.3 — Bolt Hole Sizes",
+     "Bolts tab",
+     "STD, OVS, SSLOT, LSLOT hole dimensions for all bolt diameters",
+     "Free (login req.)",
+     "https://www.aisc.org/steel-construction-manual-16th-ed"),
+
+    ("AISC Table J3.4",
+     "SCM Table J3.4 — Minimum Edge Distances",
+     "Bolts tab",
+     "Min edge distance from bolt center to edge of connected part",
+     "Free (login req.)",
+     "https://www.aisc.org/steel-construction-manual-16th-ed"),
+
+    ("AWS D1.1",
+     "Structural Welding Code — Steel",
+     "Welds tab",
+     "Prequalified joints, fillet weld sizes, electrode matching, preheat",
+     "Purchase required",
+     "https://www.aws.org/standards/details/d1-1-structural-welding-code-steel"),
+
+    ("ASME B36.10M",
+     "Welded and Seamless Wrought Steel Pipe",
+     "Pipe tab",
+     "Pipe OD, wall thickness, ID, weight for all NPS sizes and schedules",
+     "Purchase required",
+     "https://www.asme.org/codes-standards/find-codes-standards/b36-10m-welded-seamless-wrought-steel-pipe"),
+
+    ("OSHA 1910.29",
+     "Fall Protection Systems — Walking-Working Surfaces",
+     "Handrail tab",
+     "42\" top rail, 21\" mid rail, 200 lb strength, toeboard requirements",
+     "FREE",
+     "https://www.osha.gov/laws-regs/regulations/standardnumber/1910/1910.29"),
+
+    ("OSHA 1926.502",
+     "Fall Protection Systems — Construction",
+     "Handrail tab",
+     "Construction site fall protection; same rail heights as 1910.29",
+     "FREE",
+     "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.502"),
+
+    ("ASCE 7-22",
+     "Minimum Design Loads and Associated Criteria",
+     "Platforms tab",
+     "Live loads: 50 psf industrial platform, 40 psf maintenance only",
+     "Purchase required",
+     "https://www.asce.org/publications-and-news/asce-7"),
+
+    ("ASTM A36",
+     "Standard Spec for Carbon Structural Steel",
+     "Materials tab",
+     "Fy=36 ksi, Fu=58-80 ksi; plates, shapes, bars",
+     "Purchase required",
+     "https://www.astm.org/a0036_a0036m-19.html"),
+
+    ("ASTM A572",
+     "HSLA Structural Steel (Gr 42/50/55/60/65)",
+     "Materials tab",
+     "Gr50: Fy=50, Fu=65; W-shapes, beams, columns",
+     "Purchase required",
+     "https://www.astm.org/a0572_a0572m-21e01.html"),
+
+    ("ASTM A992",
+     "Structural Steel Shapes — W-Shapes",
+     "Materials tab",
+     "Fy=50 min, Fu=65; Fy/Fu <= 0.85; current standard for W-shapes",
+     "Purchase required",
+     "https://www.astm.org/a0992_a0992m-11r22.html"),
+
+    ("ASTM A500",
+     "Cold-Formed Welded/Seamless Structural Tubing",
+     "Materials tab",
+     "Gr B: Fy=46, Fu=58; Gr C: Fy=50, Fu=62; square/rect HSS",
+     "Purchase required",
+     "https://www.astm.org/a0500_a0500m-21.html"),
+
+    ("ASTM A53",
+     "Pipe, Steel, Black and Hot-Dipped",
+     "Pipe & Materials tabs",
+     "Gr B: Fy=35, Fu=60; ERW or seamless; structural pipe",
+     "Purchase required",
+     "https://www.astm.org/a0053_a0053m-22.html"),
+
+    ("ASTM A106",
+     "Seamless Carbon Steel Pipe for High-Temp Service",
+     "Pipe & Materials tabs",
+     "Gr B: Fy=35, Fu=60; seamless only; process/pressure piping",
+     "Purchase required",
+     "https://www.astm.org/a0106_a0106m-19a.html"),
+
+    ("ASTM F3125 (A325/A490)",
+     "High Strength Structural Bolts (supersedes A325/A490)",
+     "Bolts tab",
+     "Gr A325: Fy=92, Fu=120; Gr A490: Fy=130, Fu=150",
+     "Purchase required",
+     "https://www.astm.org/f3125_f3125m-21.html"),
+
+    ("ASTM F1554",
+     "Anchor Bolts, Steel, 36/55/105 ksi Yield",
+     "Bolts tab",
+     "Anchor rods for base plates; Gr36 is weldable",
+     "Purchase required",
+     "https://www.astm.org/f1554-15r20.html"),
+
+    ("ASTM A307",
+     "Carbon Steel Bolts, Studs — 60 ksi",
+     "Bolts tab",
+     "Low-strength; non-structural connections, anchor bolts",
+     "Purchase required",
+     "https://www.astm.org/a0307-14r21.html"),
+
+    ("MSS SP-58",
+     "Pipe Hangers and Supports — Materials/Design",
+     "Pipe Supports tab",
+     "Types 1-42 pipe clamp/support configurations",
+     "Purchase required",
+     "https://www.mss-hq.org/Store/ProductDetails/tabid/193/ProductID/116/Default.aspx"),
+]
+
 # (Bolt, Grade, Fy ksi, Fu ksi, Shear ksi, Tension ksi, Notes)
 BOLT_GRADES = [
     ("A307",    "Low carbon", "N/A", "60",  "27.0", "45.0", "Non-structural; anchor bolts, light connections"),
@@ -732,11 +895,193 @@ def build_bolts(wb):
     set_widths(ws, {"A":12,"B":14,"C":16,"D":18,"E":18,"F":14,"G":36})
 
 
+def build_welds(wb):
+    ws = wb["Welds"]
+    ws.sheet_properties.tabColor = "FF6600"
+    ws.freeze_panes = "A3"
+
+    AISC_URL = "https://www.aws.org/standards/details/d1-1-structural-welding-code-steel"
+
+    row = banner(ws, 1, "WELD REFERENCE — AWS D1.1 Structural Welding Code (Steel)", 7)
+    c = ws.cell(row=1, column=1)
+    c.hyperlink = AISC_URL
+    c.style = "Hyperlink"
+    c.font = Font(name="Calibri", bold=True, color="FFFFFF", size=12)
+
+    row = banner(ws, row, "MIN FILLET WELD SIZE (AWS D1.1 Table 8.8)  — based on THICKER part joined", 7)
+    row = headers(ws, row, ["Base Metal Thickness (thicker part)", "Min Fillet Weld Size", "Notes", "", "", "", ""])
+    row = data_rows(ws, row, [(t, w, n, "", "", "", "") for (t, w, n) in MIN_FILLET], center_cols={1, 2})
+
+    row += 1
+    row = banner(ws, row, "MAX SINGLE-PASS FILLET WELD SIZE (AWS D1.1)", 7)
+    row = headers(ws, row, ["Position", "Max Single-Pass Size", "Reference", "", "", "", ""])
+    row = data_rows(ws, row, [(p, m, r, "", "", "", "") for (p, m, r) in MAX_FILLET_PASS], center_cols={1, 2})
+
+    row += 1
+    row = banner(ws, row, "MAX FILLET WELD SIZE ALONG EDGE", 7)
+    row = headers(ws, row, ["Edge Thickness", "Max Weld Size", "Notes", "", "", "", ""])
+    row = data_rows(ws, row, [(e, m, n, "", "", "", "") for (e, m, n) in MAX_FILLET_EDGE], center_cols={1, 2})
+
+    row += 1
+    row = banner(ws, row, "PREQUALIFIED JOINT DETAILS (AWS D1.1) — Reference Only", 7)
+    row = headers(ws, row, ["Joint Type", "AWS Symbol", "Root Opening", "Groove Angle", "Notes", "", ""])
+    row = data_rows(ws, row, [(j, s, r, g, n, "", "") for (j, s, r, g, n) in PREQUALIFIED_JOINTS], center_cols={2, 3, 4})
+
+    row += 1
+    row = banner(ws, row, "ELECTRODE — BASE METAL MATCH TABLE", 7)
+    row = headers(ws, row, ["Base Metal", "Min Fu (ksi)", "Recommended Electrode", "Notes", "", "", ""])
+    row = data_rows(ws, row, [(b, f, e, n, "", "", "") for (b, f, e, n) in ELECTRODE_MATCH], center_cols={2, 3})
+
+    row += 2
+    weld_notes = [
+        "• Fillet weld size on drawing = LEG size (not throat). Throat = 0.707 × leg for equal-leg fillet.",
+        "• Always use the THICKER part to determine minimum weld size — not the thinner.",
+        "• E7018 is low-hydrogen; keep electrodes in oven or rod oven — discard if exposed > 4 hrs.",
+        "• Preheat required per AWS D1.1 Table 3.2 when CEQ > 0.40 or plate t > 1.5\" A36.",
+        "• WPS = Welding Procedure Specification — always weld to an approved WPS.",
+        "• PQR = Procedure Qualification Record — proves the WPS works.",
+        "• AWS D1.1 is the governing code for structural steel welding in most fabrication shops.",
+    ]
+    for n in weld_notes:
+        c = ws.cell(row=row, column=1, value=n)
+        c.font = NOTE_FONT
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=7)
+        row += 1
+
+    set_widths(ws, {"A": 30, "B": 20, "C": 18, "D": 16, "E": 40, "F": 10, "G": 10})
+
+
+def build_converter(wb):
+    ws = wb["Converter"]
+    ws.sheet_properties.tabColor = "00B0F0"
+    ws.freeze_panes = "A2"
+
+    row = banner(ws, 1, "UNIT CONVERTER  (Enter values in YELLOW cells — results auto-calculate)", 6)
+
+    # ── Length ──
+    row = banner(ws, row, "LENGTH", 6)
+    label_cell(ws, row, 1, "Inches:")
+    in_cell = input_cell(ws, row, 2, 12)
+    in_row = row
+    label_cell(ws, row, 3, "→  Feet:");      output_cell(ws, row, 4, f"=B{in_row}/12", "0.000")
+    label_cell(ws, row, 5, "→  mm:");        output_cell(ws, row, 6, f"=B{in_row}*25.4", "0.000")
+    row += 1
+    label_cell(ws, row, 3, "→  Meters:");   output_cell(ws, row, 4, f"=B{in_row}*0.0254", "0.0000")
+    label_cell(ws, row, 5, "→  cm:");       output_cell(ws, row, 6, f"=B{in_row}*2.54", "0.000")
+    row += 2
+
+    # ── Weight / Force ──
+    row = banner(ws, row, "WEIGHT / FORCE", 6)
+    label_cell(ws, row, 1, "Pounds (lbs):")
+    lb_cell = input_cell(ws, row, 2, 1000)
+    lb_row = row
+    label_cell(ws, row, 3, "→  Kilograms:"); output_cell(ws, row, 4, f"=B{lb_row}*0.453592", "0.000")
+    label_cell(ws, row, 5, "→  kips:");      output_cell(ws, row, 6, f"=B{lb_row}/1000", "0.000")
+    row += 1
+    label_cell(ws, row, 3, "→  kN:");        output_cell(ws, row, 4, f"=B{lb_row}*0.004448", "0.000")
+    label_cell(ws, row, 5, "→  Newtons:");   output_cell(ws, row, 6, f"=B{lb_row}*4.44822", "0.0")
+    row += 2
+
+    # ── Load / Pressure ──
+    row = banner(ws, row, "LOAD / PRESSURE", 6)
+    label_cell(ws, row, 1, "lb/sq ft (psf):")
+    psf_cell = input_cell(ws, row, 2, 50)
+    psf_row = row
+    label_cell(ws, row, 3, "→  kPa:");  output_cell(ws, row, 4, f"=B{psf_row}*0.047880", "0.000")
+    label_cell(ws, row, 5, "→  psi:");  output_cell(ws, row, 6, f"=B{psf_row}/144", "0.000")
+    row += 1
+    label_cell(ws, row, 3, "→  ksf:");  output_cell(ws, row, 4, f"=B{psf_row}/1000", "0.0000")
+    label_cell(ws, row, 5, "→  Pa:");   output_cell(ws, row, 6, f"=B{psf_row}*47.880", "0.0")
+    row += 2
+
+    # ── Stress ──
+    row = banner(ws, row, "STRESS (ksi ↔ MPa)", 6)
+    label_cell(ws, row, 1, "ksi (kips/in²):")
+    ksi_cell = input_cell(ws, row, 2, 36)
+    ksi_row = row
+    label_cell(ws, row, 3, "→  MPa:");  output_cell(ws, row, 4, f"=B{ksi_row}*6.89476", "0.00")
+    label_cell(ws, row, 5, "→  psi:");  output_cell(ws, row, 6, f"=B{ksi_row}*1000", "0")
+    row += 2
+
+    # ── Temperature ──
+    row = banner(ws, row, "TEMPERATURE", 6)
+    label_cell(ws, row, 1, "°F:")
+    f_cell = input_cell(ws, row, 2, 70)
+    f_row = row
+    label_cell(ws, row, 3, "→  °C:");  output_cell(ws, row, 4, f"=(B{f_row}-32)*5/9", "0.0")
+    row += 2
+
+    # ── Static reference table ──
+    row = banner(ws, row, "COMMON CONVERSION FACTORS (Quick Reference)", 6)
+    row = headers(ws, row, ["From", "To", "Multiply by", "", "", ""])
+    static = [
+        ("1 inch",    "millimeters",  "25.4"),
+        ("1 foot",    "millimeters",  "304.8"),
+        ("1 foot",    "meters",       "0.3048"),
+        ("1 lb",      "kilograms",    "0.4536"),
+        ("1 kip",     "kilonewtons",  "4.4482"),
+        ("1 psf",     "kPa",          "0.04788"),
+        ("1 ksi",     "MPa",          "6.8948"),
+        ("1 lb/ft",   "kg/m",         "1.4882"),
+        ("1 in²",     "mm²",          "645.16"),
+        ("1 in³",     "mm³",          "16387.1"),
+        ("1 in⁴",     "mm⁴",          "416231.0"),
+    ]
+    row = data_rows(ws, row, [(f, t, m, "", "", "") for (f, t, m) in static], center_cols={3})
+
+    set_widths(ws, {"A": 20, "B": 16, "C": 20, "D": 16, "E": 16, "F": 16})
+
+
+def build_references(wb):
+    ws = wb["References"]
+    ws.sheet_properties.tabColor = "404040"
+    ws.freeze_panes = "A3"
+
+    row = banner(ws, 1, "STANDARDS & CODE REFERENCES  — Where the data in this workbook comes from", 6)
+    row = headers(ws, row, ["Standard", "Full Title", "Used In Tab", "What It Covers", "Access", "Click to Open"])
+
+    for i, (std, title, tab, covers, access, url) in enumerate(REFERENCES):
+        fill = ALT_FILL if i % 2 == 0 else WHITE_FILL
+        vals = [std, title, tab, covers, access]
+        for j, v in enumerate(vals, start=1):
+            c = ws.cell(row=row, column=j, value=v)
+            c.fill = fill
+            c.font = BODY_FONT
+            c.border = BORDER
+            c.alignment = LEFT if j in (2, 4) else CENTER
+
+        # Clickable link in column 6
+        link_cell = ws.cell(row=row, column=6, value="Open Source")
+        link_cell.hyperlink = url
+        link_cell.style = "Hyperlink"
+        link_cell.fill = fill
+        link_cell.border = BORDER
+        link_cell.alignment = CENTER
+        row += 1
+
+    row += 2
+    ref_notes = [
+        "• FREE = Available at no cost online (click link to open directly)",
+        "• Purchase required = Paid standard; link goes to purchase/info page",
+        "• AISC Steel Construction Manual is FREE to download with a free account at aisc.org — highly recommended",
+        "• OSHA standards (1910 and 1926) are always free at osha.gov — bookmark these",
+        "• AWS D1.1 and ASME B36.10 require purchase — your company may have copies in the office",
+        "• When someone asks 'where did you get that number?' — point them to this tab and the linked source",
+    ]
+    for n in ref_notes:
+        c = ws.cell(row=row, column=1, value=n)
+        c.font = NOTE_FONT
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+        row += 1
+
+    set_widths(ws, {"A": 18, "B": 38, "C": 16, "D": 42, "E": 16, "F": 16})
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     wb = Workbook()
     wb.active.title = "Shapes"
-    for name in ["Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms","Bolts"]:
+    for name in ["Plate","Pipe","Materials","Handrail","Pipe Supports","Platforms","Bolts","Welds","Converter","References"]:
         wb.create_sheet(name)
 
     build_shapes(wb)
@@ -747,6 +1092,9 @@ def main():
     build_pipe_supports(wb)
     build_platforms(wb)
     build_bolts(wb)
+    build_welds(wb)
+    build_converter(wb)
+    build_references(wb)
 
     out = "steel_detailing_reference.xlsx"
     wb.save(out)
