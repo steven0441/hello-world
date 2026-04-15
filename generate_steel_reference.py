@@ -12,6 +12,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.drawing.image import Image as XLImage
+from openpyxl.worksheet.hyperlink import Hyperlink as XLHyperlink
 
 # ── Style constants ──────────────────────────────────────────────────────────
 HEADER_FILL = PatternFill("solid", fgColor="1F4E79")
@@ -58,7 +59,7 @@ def banner(ws, row, text, span):
         btn_col = span + 2
         btn = ws.cell(row=1, column=btn_col)
         btn.value = "\u2190 Dashboard"
-        btn.hyperlink = "#Dashboard!A1"
+        _ilink(btn, "Dashboard")
         btn.fill = PatternFill("solid", fgColor="595959")
         btn.font = Font(name="Calibri", bold=True, color="FFFFFF", size=10)
         btn.alignment = Alignment(horizontal="center", vertical="center")
@@ -130,6 +131,12 @@ def add_dropdown(ws, cell_range, choices):
     dv = DataValidation(type="list", formula1=formula, allow_blank=True, showDropDown=False)
     ws.add_data_validation(dv)
     dv.add(cell_range)
+
+def _ilink(cell, sheet_name, cell_addr="A1"):
+    """Attach an internal (same-workbook) hyperlink to a cell.
+    Uses Hyperlink(location=...) so Excel writes it without an external relationship."""
+    loc = f"'{sheet_name}'!{cell_addr}" if " " in sheet_name else f"{sheet_name}!{cell_addr}"
+    cell.hyperlink = XLHyperlink(ref=cell.coordinate, location=loc)
 
 # ── AISC W-Shapes ────────────────────────────────────────────────────────────
 # (Designation, d, bf, tw, tf, Wt lb/ft, Area in²)
@@ -796,9 +803,43 @@ def generate_bend_diagram():
 def build_shapes(wb):
     ws = wb["Shapes"]
     ws.sheet_properties.tabColor = TAB_COLORS["Shapes"]
-    ws.freeze_panes = "A3"
+    ws.freeze_panes = "A3"   # rows 1-2 always visible (nav + spacer)
 
-    row = banner(ws, 1, "W-SHAPES  (Wide Flange)  —  AISC", 8)
+    # ── Row 1: section jump buttons + Back to Dashboard ───────────────────
+    # Pre-calculate banner row for each section (content starts at row 3)
+    # Each section: 1 banner + 1 header + N data rows + 1 blank gap
+    w_row = 3
+    c_row = w_row + 1 + 1 + len(W_SHAPES) + 1   # = 45
+    a_row = c_row + 1 + 1 + len(C_SHAPES) + 1   # = 63
+    h_row = a_row + 1 + 1 + len(ANGLES)  + 1    # = 86
+
+    nav_sections = [
+        (1, 2, "\u25BC  W-Shapes",  w_row, "1F4E79"),
+        (3, 4, "\u25BC  C-Shapes",  c_row, "375623"),
+        (5, 6, "\u25BC  Angles",    a_row, "843C0C"),
+        (7, 8, "\u25BC  HSS",       h_row, "7030A0"),
+    ]
+    for sc, ec, label, tgt, color in nav_sections:
+        ws.merge_cells(start_row=1, start_column=sc, end_row=1, end_column=ec)
+        nc = ws.cell(row=1, column=sc, value=label)
+        _ilink(nc, "Shapes", f"A{tgt}")
+        nc.fill = PatternFill("solid", fgColor=color)
+        nc.font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+        nc.alignment = Alignment(horizontal="center", vertical="center")
+
+    btn = ws.cell(row=1, column=10)
+    btn.value = "\u2190 Dashboard"
+    _ilink(btn, "Dashboard")
+    btn.fill = PatternFill("solid", fgColor="595959")
+    btn.font = Font(name="Calibri", bold=True, color="FFFFFF", size=10)
+    btn.alignment = Alignment(horizontal="center", vertical="center")
+    ws.column_dimensions["J"].width = 15
+    ws.row_dimensions[1].height = 26
+    ws.row_dimensions[2].height = 5   # thin spacer between nav and first section
+
+    # ── Sections ──────────────────────────────────────────────────────────
+    row = w_row   # = 3
+    row = banner(ws, row, "W-SHAPES  (Wide Flange)  —  AISC", 8)
     row = headers(ws, row, ["Designation","d (in)","bf (in)","tw (in)","tf (in)","Wt (lb/ft)","Area (in²)","Notes"])
     row = data_rows(ws, row, [(d,a,b,c,e,f,g,"") for (d,a,b,c,e,f,g) in W_SHAPES], center_cols={2,3,4,5,6,7})
 
@@ -817,8 +858,7 @@ def build_shapes(wb):
     row = headers(ws, row, ["Designation","H (in)","B (in)","Wall t (in)","Wt (lb/ft)","Area (in²)","",""])
     row = data_rows(ws, row, [(d,a,b,c,e,f,"","") for (d,a,b,c,e,f) in HSS_SHAPES], center_cols={2,3,4,5,6})
 
-    # AutoFilter on every section header row so user can sort/filter any column
-    ws.auto_filter.ref = f"A2:H{ws.max_row}"
+    ws.auto_filter.ref = f"A4:H{ws.max_row}"
     set_widths(ws, {"A":20,"B":11,"C":11,"D":12,"E":12,"F":12,"G":12,"H":28})
 
 
@@ -1442,7 +1482,7 @@ def build_dashboard(wb):
         ws.merge_cells(start_row=r, start_column=c, end_row=r+1, end_column=c+1)
         cell = ws.cell(row=r, column=c)
         cell.value = label
-        cell.hyperlink = f"#{sheet}!A1"
+        _ilink(cell, sheet)
         cell.fill = PatternFill("solid", fgColor=color)
         cell.font = Font(name="Calibri", bold=True, color="FFFFFF", size=13)
         cell.alignment = Alignment(horizontal="center", vertical="center")
