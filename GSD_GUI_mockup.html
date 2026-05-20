@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSD Processor v2.0.20 — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0d1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    padding: 32px 16px;
+  }
+
+  /* ── Window chrome ── */
+  .window {
+    width: 600px;
+    background: #1a1a2e;
+    border: 1px solid #2e2e4a;
+    border-radius: 8px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(155,89,245,0.08);
+    overflow: hidden;
+  }
+
+  .titlebar {
+    background: #111122;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2e2e4a;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.red    { background: #ff5f57; }
+  .dot.yellow { background: #ffbd2e; }
+  .dot.green  { background: #28c840; }
+  .titlebar-label {
+    margin-left: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #5a5a7a;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Content ── */
+  .content { padding: 18px 20px 20px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f5c542;
+    letter-spacing: 0.3px;
+  }
+  .header .version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #4a5568;
+  }
+  .header .subtitle {
+    font-size: 11px;
+    color: #4a5568;
+  }
+
+  .divider {
+    height: 1px;
+    background: #2e2e4a;
+    margin: 14px 0;
+  }
+
+  /* ── Form rows ── */
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .field-label {
+    font-size: 12px;
+    color: #a0aec0;
+    width: 90px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .field-input {
+    flex: 1;
+    background: #111130;
+    border: 1px solid #2e2e4a;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #7a8aaa;
+    cursor: not-allowed;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .field-input.active {
+    color: #9b59f5;
+    border-color: #3a2a5a;
+  }
+  .btn-browse {
+    background: #252540;
+    border: 1px solid #3a3a5a;
+    border-radius: 4px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: #a0aec0;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-browse:hover { background: #2e2e50; border-color: #9b59f5; color: #e2e8f0; }
+
+  /* ── Progress ── */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .progress-label-left {
+    font-size: 12px;
+    color: #a0aec0;
+    width: 90px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .progress-track {
+    flex: 1;
+    height: 14px;
+    background: #111130;
+    border: 1px solid #2e2e4a;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00c875 0%, #00ff88 100%);
+    border-radius: 3px;
+    width: 65%;
+    transition: width 0.4s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+    animation: shimmer 1.8s infinite;
+  }
+  @keyframes shimmer { to { left: 100%; } }
+  .progress-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #4a5568;
+    width: 48px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Log ── */
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .log-title {
+    font-size: 11px;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .btn-clear {
+    font-size: 10px;
+    color: #4a5568;
+    background: none;
+    border: 1px solid #2e2e4a;
+    border-radius: 3px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .btn-clear:hover { color: #a0aec0; border-color: #4a4a6a; }
+
+  .log-box {
+    background: #0d0d1e;
+    border: 1px solid #2e2e4a;
+    border-radius: 4px;
+    padding: 10px 12px;
+    height: 190px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .log-box::-webkit-scrollbar { width: 6px; }
+  .log-box::-webkit-scrollbar-track { background: #111122; }
+  .log-box::-webkit-scrollbar-thumb { background: #2e2e4a; border-radius: 3px; }
+
+  .log-sep  { color: #2e3e5e; }
+  .log-info { color: #4a5a7a; }
+  .log-file { color: #6a7a9a; }
+  .log-ok   { color: #00cc66; }
+  .log-err  { color: #ff4040; }
+  .log-warn { color: #f5c542; }
+  .log-done { color: #9b59f5; }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 12px;
+    background: #9b59f5;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 8px 0 0;
+  }
+  .stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .stat .val { font-weight: 700; }
+  .stat.processed .val { color: #00ff88; }
+  .stat.errors    .val { color: #ff4040; }
+  .stat.elapsed   .val { color: #a0aec0; }
+  .stat .lbl { color: #4a5568; }
+
+  /* ── Button row ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 5px;
+    padding: 9px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn-start {
+    background: linear-gradient(135deg, #00bb5e, #00ff88);
+    color: #001a0d;
+    flex: 0 0 auto;
+    min-width: 110px;
+    box-shadow: 0 4px 16px rgba(0,255,136,0.2);
+  }
+  .btn-start:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,255,136,0.35); }
+
+  .btn-cancel {
+    background: #1e1e30;
+    color: #ff4040;
+    border: 1px solid #3a1a1a;
+    min-width: 96px;
+  }
+  .btn-cancel:hover { background: #2a1a1a; border-color: #ff4040; }
+
+  .btn-output {
+    background: #1e1e30;
+    color: #9b59f5;
+    border: 1px solid #2e1a4a;
+    margin-left: auto;
+    min-width: 116px;
+  }
+  .btn-output:hover { background: #25153a; border-color: #9b59f5; }
+
+  /* ── Animated note at bottom ── */
+  .note {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 10px;
+    color: #2e2e4a;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="dot red"></div>
+    <div class="dot yellow"></div>
+    <div class="dot green"></div>
+    <span class="titlebar-label">GSD Processor v2.0.20</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>GSD Processor</h1>
+      <span class="version">v2.0.20</span>
+      <span class="subtitle">· NC1 File Processor for Structural Steel</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Input folder -->
+    <div class="field-row">
+      <span class="field-label">Input Folder</span>
+      <div class="field-input active">P:\Jobs\Job-240891\NC1 Files\</div>
+      <button class="btn-browse">Browse</button>
+    </div>
+
+    <!-- Library path -->
+    <div class="field-row">
+      <span class="field-label">Library Path</span>
+      <div class="field-input">H:\PROGRAMMING\Standards\GSD Library\Shapes Library\</div>
+      <button class="btn-browse">Browse</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Progress -->
+    <div class="progress-row">
+      <span class="progress-label-left">Progress</span>
+      <div class="progress-track">
+        <div class="progress-fill"></div>
+      </div>
+      <span class="progress-count">13 / 20</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Log -->
+    <div class="log-header">
+      <span class="log-title">Log</span>
+      <button class="btn-clear">Clear Log</button>
+    </div>
+
+    <div class="log-box">
+      <div class="log-sep">── Starting GSD run ──────────────────────────────</div>
+      <div class="log-info">Folder : P:\Jobs\Job-240891\NC1 Files\</div>
+      <div class="log-info">Library: H:\PROGRAMMING\Standards\GSD Library\Shapes Library\</div>
+      <div class="log-info">Files  : 20 NC1 files found</div>
+      <div>&nbsp;</div>
+      <div class="log-file">Processing  B-101.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Beam · A572-50 · Machine: Beamline</div>
+      <div class="log-file">Processing  B-102.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Beam · A572-50 · Machine: Beamline</div>
+      <div class="log-file">Processing  PL-201.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Plate · A36 · Machine: Plate Machine</div>
+      <div class="log-file">Processing  PL-202.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Bar · A36 · Machine: Plate Machine</div>
+      <div class="log-file">Processing  A-301.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Angle · A36 · Machine: Anglemaster</div>
+      <div class="log-file">Processing  A-302.nc1 ...</div>
+      <div class="log-warn">&nbsp;&nbsp;⚠&nbsp; Slot adjusted — NEEDS CUSTOMER APPROVAL</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Plate · A36 · Machine: Plate Machine</div>
+      <div class="log-file">Processing  C-401.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Channel · A572-50 · Machine: Beamline</div>
+      <div class="log-file">Processing  WT-501.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; WT · A572-50 · Machine: Beamline</div>
+      <div class="log-file">Processing  HSS-601.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Tube · A500 · Machine: Beamline</div>
+      <div class="log-file">Processing  PL-203.nc1 ...</div>
+      <div class="log-err">&nbsp;&nbsp;✗&nbsp; ERROR: Plate height out of range (54.2mm)</div>
+      <div class="log-file">Processing  B-103.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Beam · A36 · Machine: Beamline</div>
+      <div class="log-file">Processing  B-104.nc1 ...</div>
+      <div class="log-ok">&nbsp;&nbsp;✓&nbsp; Beam · A572-50 · Machine: Beamline</div>
+      <div class="log-file">Processing  PL-204.nc1 ...<span class="cursor"></span></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat processed"><span class="lbl">Processed: </span><span class="val">12</span></div>
+      <div class="stat errors"><span class="lbl">Errors: </span><span class="val">1</span></div>
+      <div class="stat elapsed"><span class="lbl">Elapsed: </span><span class="val">3.4s</span></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn btn-start">▶&nbsp; START</button>
+      <button class="btn btn-cancel">■&nbsp; CANCEL</button>
+      <button class="btn btn-output">Open Output ↗</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="note">mockup — compiled with Ahk2Exe using AutoHotkey v1.1</div>
+
+</body>
+</html>
