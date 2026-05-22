@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>God Dungeon — Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #080810;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,0.008) 40px, rgba(255,255,255,0.008) 80px);
+  }
+
+  .font-cinzel { font-family: 'Cinzel', serif; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── GOD THRONE ── */
+  .god-panel {
+    border: 1px solid #3a2e00;
+    background: #0f0f1a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 0 18px rgba(245,197,66,0.2), inset 0 0 30px rgba(245,197,66,0.03);
+  }
+  .god-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .crown { font-size: 26px; }
+  .god-title { font-family: 'Cinzel', serif; font-size: 20px; color: #f5c542; letter-spacing: 4px; text-transform: uppercase; }
+  .net-worth { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #ff4040; }
+  .decree-row { display: flex; gap: 10px; }
+  .decree-input {
+    flex: 1;
+    background: #080810;
+    border: 1px solid #3a2e00;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .decree-input::placeholder { color: #4a5568; }
+  .decree-btn {
+    background: #f5c542;
+    color: #080810;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+
+  /* ── ORCHESTRATOR ── */
+  .orc-panel {
+    border: 1px solid #3d1f7a;
+    background: #0f0f1a;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 0 18px rgba(155,89,245,0.2), inset 0 0 30px rgba(155,89,245,0.03);
+  }
+  .orc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .orc-label { font-family: 'Cinzel', serif; font-size: 12px; color: #9b59f5; letter-spacing: 4px; text-transform: uppercase; }
+  .orc-model { margin-left: auto; font-size: 10px; color: #4a5568; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .orc-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #e2e8f0; line-height: 1.6; }
+  .typing-cursor::after { content: '▋'; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 14px;
+  }
+  @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* ── BEAN CELL ── */
+  .bean-panel {
+    border: 1px solid #5a2a0a;
+    background: #0f0f1a;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 18px rgba(255,107,53,0.2), inset 0 0 30px rgba(255,107,53,0.02);
+  }
+  .bean-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #1e1e2e;
+  }
+  .bean-label { font-family: 'Cinzel', serif; font-size: 12px; color: #ff6b35; letter-spacing: 3px; text-transform: uppercase; }
+  .condemned-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    background: #5a2a0a;
+    color: #ff6b35;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .bean-model { margin-left: auto; font-size: 9px; color: #4a5568; font-family: 'JetBrains Mono', monospace; }
+
+  /* ── CELL CANVAS ── */
+  .cell-canvas {
+    background: #e8e0d0;
+    position: relative;
+    height: 320px;
+    overflow: hidden;
+  }
+
+  /* Carpet tiles */
+  .cell-canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(212,201,176,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212,201,176,0.4) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Walls */
+  .wall-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 55px;
+    background: #f0ebe0;
+    border-bottom: 3px solid #c8b89a;
+  }
+  .wall-left {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 45px;
+    background: #f0ebe0;
+    border-right: 3px solid #c8b89a;
+  }
+  .wall-right {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 45px;
+    background: #f0ebe0;
+    border-left: 3px solid #c8b89a;
+  }
+
+  /* Fluorescent lights */
+  .light {
+    position: absolute;
+    top: 10px;
+    height: 14px;
+    width: 110px;
+    background: #f5f0e0;
+    border: 1px solid #e0d8c0;
+    border-radius: 2px;
+    box-shadow: 0 0 20px rgba(245,240,224,0.8), 0 0 60px rgba(245,240,224,0.3);
+    animation: flicker 8s infinite;
+  }
+  .light-1 { left: 150px; }
+  .light-2 { right: 150px; }
+  @keyframes flicker {
+    0%,95%,100%{opacity:1}
+    96%{opacity:0.3}
+    97%{opacity:1}
+    98%{opacity:0.2}
+    99%{opacity:1}
+  }
+
+  /* Furniture */
+  .furniture { position: absolute; }
+
+  /* Bed */
+  .bed {
+    top: 65px; left: 55px;
+    width: 75px; height: 55px;
+    background: #fafafa;
+    border: 3px solid #8b7355;
+    border-radius: 3px;
+  }
+  .bed::after {
+    content: 'COT';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #888880;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .pillow {
+    position: absolute;
+    top: 68px; left: 58px;
+    width: 35px; height: 22px;
+    background: #f0f0f0;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+  }
+
+  /* Desk */
+  .desk {
+    top: 68px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 65px;
+    background: #8b6914;
+    border-radius: 2px;
+    border-top: 8px solid #a07820;
+  }
+  .desk::after {
+    content: 'DESK';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #888880;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .monitor {
+    position: absolute;
+    top: 30px; left: 50%; transform: translateX(-50%);
+    width: 44px; height: 32px;
+    background: #1a1a2e;
+    border-radius: 2px;
+  }
+  .monitor-screen {
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    background: #0d4f8b;
+    border-radius: 1px;
+    box-shadow: 0 0 8px rgba(13,79,139,0.8);
+  }
+  .keyboard {
+    position: absolute;
+    top: 72px; left: 50%; transform: translateX(-50%);
+    width: 50px; height: 14px;
+    background: #d0c8b8;
+    border-radius: 2px;
+  }
+  .papers {
+    position: absolute;
+    top: 35px; right: 140px;
+    width: 28px; height: 35px;
+    background: #fffde8;
+    border: 1px solid #e8e0c8;
+    transform: rotate(3deg);
+  }
+
+  /* Safe */
+  .safe {
+    top: 65px; right: 55px;
+    width: 48px; height: 55px;
+    background: #2c3040;
+    border: 2px solid #404860;
+    border-radius: 2px;
+  }
+  .safe::after {
+    content: 'SAFE';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #888880;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .safe-dial {
+    position: absolute;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 18px;
+    background: #8899aa;
+    border-radius: 50%;
+    border: 2px solid #6677aa;
+  }
+
+  /* Restroom */
+  .restroom {
+    bottom: 55px; left: 55px;
+    width: 95px; height: 70px;
+    border-top: 3px solid #f0ebe0;
+    border-right: 3px solid #f0ebe0;
+  }
+  .restroom::after {
+    content: 'RESTROOM';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: #888880;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .toilet {
+    position: absolute;
+    bottom: 5px; left: 8px;
+    width: 22px; height: 30px;
+    background: white;
+    border-radius: 50% 50% 40% 40%;
+    border: 1px solid #ddd;
+  }
+  .sink {
+    position: absolute;
+    bottom: 10px; right: 8px;
+    width: 26px; height: 22px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+  }
+
+  /* Iron bars */
+  .bars-container {
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 220px; height: 38px;
+  }
+  .bar-base-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 8px;
+    background: #2a2a2a;
+  }
+  .bar-base-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
+    background: #2a2a2a;
+  }
+  .bar {
+    position: absolute;
+    top: 8px; bottom: 8px;
+    width: 5px;
+    background: linear-gradient(90deg, #3a3a3a 0%, #606060 30%, #3a3a3a 100%);
+    border-radius: 1px;
+  }
+  .condemned-label {
+    position: absolute;
+    bottom: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #666655;
+    letter-spacing: 3px;
+    white-space: nowrap;
+  }
+
+  /* ── BEAN SPRITE ── */
+  .bean-sprite {
+    position: absolute;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    animation: pace 4s ease-in-out infinite;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+  @keyframes pace {
+    0%, 100% { transform: translateX(-80px); }
+    50% { transform: translateX(40px); }
+  }
+
+  /* Bean SVG sprite */
+  .bean-sprite svg { width: 24px; height: 40px; }
+
+  /* Speech bubble */
+  .speech-bubble {
+    position: absolute;
+    bottom: 135px;
+    left: 50%;
+    transform: translateX(-130px);
+    background: #fffff8;
+    border: 1px solid #888880;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #1a1a2e;
+    white-space: nowrap;
+    animation: bubble-move 4s ease-in-out infinite, bubble-fade 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 3px solid transparent;
+    border-top-color: #888880;
+  }
+  @keyframes bubble-move {
+    0%, 100% { transform: translateX(-130px); }
+    50% { transform: translateX(-10px); }
+  }
+  @keyframes bubble-fade {
+    0%,40%,100% { opacity: 1; }
+    50%,90% { opacity: 0; }
+  }
+
+  /* Bean status bar */
+  .bean-status {
+    padding: 8px 16px;
+    border-top: 1px solid #1e1e2e;
+    background: #0a0a14;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .status-dot { color: #ff6b35; }
+  .status-text { color: #4a5568; }
+
+  /* Bean chat */
+  .bean-chat { padding: 14px 16px; border-top: 1px solid #1e1e2e; }
+  .chat-messages {
+    height: 100px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  .chat-placeholder { color: #4a5568; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-style: italic; }
+  .chat-msg-bean {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .chat-from { color: #ff6b35; font-size: 11px; font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+  .chat-text {
+    background: #1a1008;
+    border: 1px solid #3a2000;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+    line-height: 1.5;
+  }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input {
+    flex: 1;
+    background: #080810;
+    border: 1px solid #3a2000;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .chat-input::placeholder { color: #4a5568; }
+  .ask-btn {
+    background: #ff6b35;
+    color: #080810;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display: flex; flex-direction: column; gap: 14px; }
+
+  .side-panel {
+    border: 1px solid #1e1e2e;
+    background: #0f0f1a;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .side-title {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: #4a5568;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* Ledger */
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .ledger-label { color: #4a5568; }
+  .green { color: #00ff88; }
+  .white { color: #e2e8f0; }
+  .red { color: #ff4040; }
+  .ledger-divider { border: none; border-top: 1px solid #1e1e2e; margin: 8px 0; }
+  .health-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #4a5568;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .health-bar {
+    height: 8px;
+    background: #1e1e2e;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .health-fill {
+    height: 100%;
+    width: 62%;
+    background: #f5c542;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+
+  /* Bills */
+  .bill-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .bill-day { width: 64px; text-align: right; font-weight: 700; font-size: 10px; flex-shrink: 0; }
+  .bill-today { color: #ff4040; animation: blink 1s infinite; }
+  .bill-soon { color: #ff6b35; }
+  .bill-ok { color: #4a5568; }
+  .bill-name { flex: 1; color: #e2e8f0; }
+  .bill-amt { color: #a0aec0; flex-shrink: 0; }
+  .add-bill { color: #ff6b35; font-size: 10px; cursor: pointer; text-align: right; margin-top: 4px; }
+
+  /* Milestones */
+  .milestone-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .milestone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #1e1e2e;
+    text-align: center;
+    opacity: 0.3;
+    filter: grayscale(1);
+  }
+  .milestone.achieved {
+    border-color: #f5c542;
+    background: #1a1500;
+    opacity: 1;
+    filter: none;
+  }
+  .milestone-icon { font-size: 20px; line-height: 1; }
+  .milestone-label { font-size: 8px; font-family: 'JetBrains Mono', monospace; color: #e2e8f0; line-height: 1.2; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #4a5568;
+    letter-spacing: 3px;
+  }
+
+  /* Demo label */
+  .demo-banner {
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #9b59f5;
+    letter-spacing: 2px;
+    padding: 6px;
+    border: 1px solid #3d1f7a;
+    border-radius: 6px;
+    background: #0f0f1a;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">◈ STATIC PREVIEW — This is what the real app looks like. All colors, fonts and layout are exact. ◈</div>
+
+<!-- GOD'S THRONE -->
+<div class="god-panel">
+  <div class="god-header">
+    <span class="crown">♕</span>
+    <span class="god-title">God Dungeon</span>
+    <span class="net-worth font-mono">Net Worth: -$5,750</span>
+  </div>
+  <div class="decree-row">
+    <input class="decree-input" placeholder="Issue a Divine Decree..." />
+    <button class="decree-btn">DECREE</button>
+  </div>
+</div>
+
+<!-- ORCHESTRATOR -->
+<div class="orc-panel">
+  <div class="orc-header">
+    <span style="color:#9b59f5;font-size:16px;">◈</span>
+    <span class="orc-label">Orchestrator</span>
+    <span class="orc-model">CLAUDE OPUS 4.6</span>
+  </div>
+  <p class="orc-text typing-cursor">"Finance Slave reports rent is due today. Savings at 29% of emergency fund target. Recommend immediate budget review and rent payment."</p>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- BEAN'S CELL -->
+  <div class="bean-panel">
+    <div class="bean-header">
+      <span style="color:#ff6b35;">⛓</span>
+      <span class="bean-label">Bean Counter's Cell</span>
+      <span class="condemned-badge">condemned</span>
+      <span class="bean-model">CLAUDE SONNET 4.6</span>
+    </div>
+
+    <!-- CELL CANVAS -->
+    <div class="cell-canvas">
+      <!-- Walls -->
+      <div class="wall-top"></div>
+      <div class="wall-left"></div>
+      <div class="wall-right"></div>
+
+      <!-- Lights -->
+      <div class="light light-1"></div>
+      <div class="light light-2"></div>
+
+      <!-- Bed -->
+      <div class="furniture bed"></div>
+      <div class="pillow"></div>
+
+      <!-- Desk -->
+      <div class="furniture desk">
+        <div class="monitor"><div class="monitor-screen"></div></div>
+        <div class="keyboard"></div>
+      </div>
+      <div class="papers"></div>
+
+      <!-- Safe -->
+      <div class="furniture safe"><div class="safe-dial"></div></div>
+
+      <!-- Restroom -->
+      <div class="furniture restroom">
+        <div class="toilet"></div>
+        <div class="sink"></div>
+      </div>
+
+      <!-- Iron bars -->
+      <div class="bars-container">
+        <div class="bar-base-top"></div>
+        <div class="bar-base-bottom"></div>
+        <div class="bar" style="left:10px"></div>
+        <div class="bar" style="left:32px"></div>
+        <div class="bar" style="left:54px"></div>
+        <div class="bar" style="left:76px"></div>
+        <div class="bar" style="left:98px"></div>
+        <div class="bar" style="left:120px"></div>
+        <div class="bar" style="left:142px"></div>
+        <div class="bar" style="left:164px"></div>
+        <div class="bar" style="left:186px"></div>
+        <div class="bar" style="left:208px"></div>
+      </div>
+      <div class="condemned-label">⛓  C O N D E M N E D  ⛓</div>
+
+      <!-- Bean sprite (SVG pixel art) -->
+      <div class="bean-sprite">
+        <svg viewBox="0 0 16 28" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated">
+          <!-- Shoes -->
+          <ellipse cx="5" cy="26" rx="4" ry="2" fill="#1c1c1c"/>
+          <ellipse cx="11" cy="26" rx="4" ry="2" fill="#1c1c1c"/>
+          <!-- Slacks -->
+          <rect x="3" y="17" width="4" height="9" fill="#1a252f"/>
+          <rect x="9" y="17" width="4" height="9" fill="#1a252f"/>
+          <!-- Shirt -->
+          <rect x="3" y="10" width="10" height="9" fill="#d6eaf8"/>
+          <!-- Blazer -->
+          <rect x="1" y="10" width="4" height="9" fill="#2c3e50"/>
+          <rect x="11" y="10" width="4" height="9" fill="#2c3e50"/>
+          <rect x="1" y="10" width="14" height="3" fill="#2c3e50"/>
+          <!-- Tie -->
+          <rect x="7" y="11" width="2" height="7" fill="#8b1a1a"/>
+          <!-- Head -->
+          <circle cx="8" cy="5" r="5" fill="#f5cba7"/>
+          <!-- Hair -->
+          <rect x="3" y="1" width="10" height="4" fill="#2c2c2c"/>
+          <!-- Glasses -->
+          <rect x="2" y="4" width="4" height="3" fill="none" stroke="#7f8c8d" stroke-width="0.8"/>
+          <rect x="10" y="4" width="4" height="3" fill="none" stroke="#7f8c8d" stroke-width="0.8"/>
+          <line x1="6" y1="5.5" x2="10" y2="5.5" stroke="#7f8c8d" stroke-width="0.8"/>
+          <!-- Eyes -->
+          <rect x="3" y="5" width="2" height="1.5" fill="#1a1a1a"/>
+          <rect x="11" y="5" width="2" height="1.5" fill="#1a1a1a"/>
+          <!-- Mouth -->
+          <line x1="5" y1="8" x2="11" y2="8" stroke="#cc9977" stroke-width="0.8"/>
+          <!-- Arms -->
+          <rect x="-2" y="11" width="4" height="7" fill="#2c3e50"/>
+          <rect x="14" y="11" width="4" height="7" fill="#2c3e50"/>
+          <circle cx="-1" cy="19" r="3" fill="#f5cba7"/>
+          <circle cx="17" cy="19" r="3" fill="#f5cba7"/>
+        </svg>
+      </div>
+
+      <!-- Speech bubble -->
+      <div class="speech-bubble">Rent is due today. Pay it.</div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="bean-status">
+      <span class="status-dot">●</span>
+      <span class="status-text">Waiting. Always waiting.</span>
+    </div>
+
+    <!-- Chat -->
+    <div class="bean-chat">
+      <div class="chat-messages">
+        <div class="chat-msg-bean">
+          <span class="chat-from">Bean:</span>
+          <div class="chat-text">Rent is your largest expense at 23% of monthly income. It is due today. I recommend paying it before anything else this week.</div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" placeholder="Ask Bean..."/>
+        <button class="ask-btn">ASK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Ledger -->
+    <div class="side-panel">
+      <div class="side-title">Ledger</div>
+      <div class="ledger-row"><span class="ledger-label">Income</span><span class="green">$5,200/mo</span></div>
+      <div class="ledger-row"><span class="ledger-label">Savings</span><span class="white">$2,450</span></div>
+      <div class="ledger-row"><span class="ledger-label">Debt</span><span class="red">$8,200</span></div>
+      <hr class="ledger-divider"/>
+      <div class="ledger-row"><span class="ledger-label">Net Worth</span><span class="red">-$5,750</span></div>
+      <div class="health-label-row"><span>Budget Health</span><span style="color:#f5c542">62%</span></div>
+      <div class="health-bar"><div class="health-fill"></div></div>
+    </div>
+
+    <!-- Bills -->
+    <div class="side-panel">
+      <div class="side-title">Bills</div>
+      <div class="bill-row">
+        <span class="bill-day bill-today">TODAY</span>
+        <span class="bill-name">Rent</span>
+        <span class="bill-amt">$1,200</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-day bill-soon">3d</span>
+        <span class="bill-name">Phone</span>
+        <span class="bill-amt">$75</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-day bill-ok">7d</span>
+        <span class="bill-name">Netflix</span>
+        <span class="bill-amt">$18</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-day bill-ok">10d</span>
+        <span class="bill-name">Internet</span>
+        <span class="bill-amt">$60</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-day bill-ok">15d</span>
+        <span class="bill-name">Electric</span>
+        <span class="bill-amt">$85</span>
+      </div>
+      <div class="add-bill">+ add bill</div>
+    </div>
+
+    <!-- Milestones -->
+    <div class="side-panel">
+      <div class="side-title">Milestones</div>
+      <div class="milestone-grid">
+        <div class="milestone achieved">
+          <span class="milestone-icon">🪙</span>
+          <span class="milestone-label">Gold Coin</span>
+        </div>
+        <div class="milestone">
+          <span class="milestone-icon">⛓</span>
+          <span class="milestone-label">Chainbreaker</span>
+        </div>
+        <div class="milestone">
+          <span class="milestone-icon">📦</span>
+          <span class="milestone-label">Treasure Chest</span>
+        </div>
+        <div class="milestone">
+          <span class="milestone-icon">💎</span>
+          <span class="milestone-label">Diamond</span>
+        </div>
+        <div class="milestone">
+          <span class="milestone-icon">🛡️</span>
+          <span class="milestone-label">Shield</span>
+        </div>
+        <div class="milestone">
+          <span class="milestone-icon">👑</span>
+          <span class="milestone-label">Crown</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">⛓ BEAN COUNTER HAS BEEN HERE FOR [REDACTED] YEARS ⛓</div>
+
+</body>
+</html>

@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Mission Control v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #04040c;
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 40px;
+  overflow-x: hidden;
+}
+
+/* ── THIN CROWN BAR ─────────────────────────── */
+.crown-bar {
+  width: 100%;
+  background: #060610;
+  border-bottom: 1px solid #1a1a2e;
+  padding: 7px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.crown-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: #f5c542;
+  letter-spacing: 4px;
+}
+.crown-stat { font-size: 10px; color: #3a3a5a; }
+.crown-stat b { color: #00ff88; }
+.crown-spacer { flex: 1; }
+.crown-alert {
+  font-size: 10px;
+  color: #ff4040;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.blink { animation: blink 1.2s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── DUNGEON WRAPPER ────────────────────────── */
+.dungeon {
+  width: 900px;
+  max-width: 98vw;
+  margin-top: 20px;
+}
+
+/* ── OVERSEER ROOM ──────────────────────────── */
+.overseer {
+  position: relative;
+  background: #0a0a18;
+  border: 1px solid #222238;
+  border-radius: 6px 6px 0 0;
+  overflow: hidden;
+}
+
+/* stone texture on walls */
+.os-wall-top {
+  height: 28px;
+  background:
+    repeating-linear-gradient(90deg,
+      #111124 0, #111124 44px,
+      #0d0d1e 45px, #0d0d1e 90px,
+      #111124 91px, #111124 135px,
+      #0d0d1e 136px, #0d0d1e 180px
+    );
+  border-bottom: 2px solid #080814;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.room-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 5px;
+  color: #252540;
+  text-transform: uppercase;
+}
+
+/* floor */
+.os-floor {
+  height: 460px;
+  position: relative;
+  /* carpet-tile floor pattern */
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,0.012) 0, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 60px),
+    #090916;
+}
+
+/* ambient glow from throne */
+.os-floor::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 200px;
+  background: radial-gradient(ellipse at top, rgba(245,197,66,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── THRONE AREA ─────────────────────────────── */
+.throne-area {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 200px;
+}
+
+/* raised stone dais */
+.dais {
+  width: 200px;
+  height: 10px;
+  background: linear-gradient(180deg, #2a2218 0%, #18120a 100%);
+  border: 1px solid #4a3c22;
+  border-radius: 3px;
+  box-shadow: 0 4px 20px rgba(245,197,66,0.08), 0 0 40px rgba(245,197,66,0.04);
+}
+.dais-steps {
+  width: 160px;
+  height: 6px;
+  background: #1a140c;
+  border: 1px solid #3a2e18;
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+  margin: 0 auto;
+}
+
+/* the throne itself */
+.throne {
+  margin-top: 2px;
+  width: 70px;
+  position: relative;
+}
+.throne-back {
+  width: 70px;
+  height: 58px;
+  background: linear-gradient(170deg, #2e2010 0%, #1a1008 60%, #0e0a04 100%);
+  border: 1px solid #6a4e22;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  box-shadow:
+    inset 0 0 20px rgba(245,197,66,0.06),
+    0 0 24px rgba(245,197,66,0.12),
+    0 0 60px rgba(245,197,66,0.05);
+}
+/* throne back decorative lines */
+.throne-back::before {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px; right: 8px;
+  height: 1px;
+  background: rgba(245,197,66,0.15);
+}
+.throne-back::after {
+  content: '';
+  position: absolute;
+  top: 16px; left: 12px; right: 12px;
+  height: 1px;
+  background: rgba(245,197,66,0.08);
+}
+.throne-crown-icon {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  filter: drop-shadow(0 0 8px rgba(245,197,66,0.7));
+  animation: throneGlow 3s ease-in-out infinite;
+}
+@keyframes throneGlow {
+  0%,100% { filter: drop-shadow(0 0 8px rgba(245,197,66,0.7)); }
+  50%      { filter: drop-shadow(0 0 16px rgba(245,197,66,1)); }
+}
+.throne-armrests {
+  display: flex;
+  gap: 52px;
+  margin: 0 auto;
+  width: 80px;
+}
+.armrest {
+  width: 8px;
+  height: 12px;
+  background: #2a1c0e;
+  border: 1px solid #5a3e1a;
+  border-top: none;
+}
+.throne-seat {
+  width: 70px;
+  height: 16px;
+  background: linear-gradient(180deg, #3a2410 0%, #1e1408 100%);
+  border: 1px solid #5a3e18;
+  border-top: 1px solid #7a5822;
+  border-radius: 0 0 4px 4px;
+}
+.throne-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: #f5c542;
+  letter-spacing: 4px;
+  margin-top: 8px;
+  opacity: 0.6;
+}
+
+/* ── MOTE ─────────────────────────────────────── */
+.mote {
+  position: absolute;
+  top: 30px;
+  left: calc(50% - 120px);
+}
+.mote-critter {
+  font-size: 28px;
+  display: block;
+  cursor: pointer;
+  animation: moteHover 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(155,89,245,0.6));
+  line-height: 1;
+  transform-origin: center;
+}
+@keyframes moteHover {
+  0%   { transform: translateY(0)   rotate(-4deg) scale(1); }
+  30%  { transform: translateY(-6px) rotate(2deg)  scale(1.05); }
+  60%  { transform: translateY(-3px) rotate(-2deg) scale(1.02); }
+  100% { transform: translateY(0)   rotate(-4deg) scale(1); }
+}
+.mote-shadow {
+  width: 28px;
+  height: 5px;
+  background: radial-gradient(ellipse, rgba(155,89,245,0.25) 0%, transparent 70%);
+  margin: 0 auto;
+  animation: moteShadow 3s ease-in-out infinite;
+}
+@keyframes moteShadow {
+  0%,100% { transform: scaleX(1);   opacity: 0.5; }
+  30%     { transform: scaleX(0.7); opacity: 0.2; }
+}
+.mote-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  color: #9b59f5;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-top: 3px;
+}
+/* mote speech bubble */
+.mote-speech {
+  position: absolute;
+  top: -2px;
+  left: 44px;
+  background: #110d1e;
+  border: 1px solid #3a2460;
+  border-radius: 4px 4px 4px 0;
+  padding: 5px 9px;
+  font-size: 9px;
+  color: #9b59f5;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(155,89,245,0.15);
+}
+.mote-speech::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: -6px;
+  border: 4px solid transparent;
+  border-right-color: #3a2460;
+  border-bottom-color: #3a2460;
+}
+
+/* ── LEFT WALL: LEDGER ──────────────────────── */
+.wall-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 100%;
+  background: repeating-linear-gradient(
+    180deg,
+    #0e0e1c 0, #0e0e1c 29px,
+    #0b0b18 30px, #0b0b18 60px
+  );
+  border-right: 2px solid #080814;
+}
+
+/* ── RIGHT WALL ─────────────────────────────── */
+.wall-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 100%;
+  background: repeating-linear-gradient(
+    180deg,
+    #0e0e1c 0, #0e0e1c 29px,
+    #0b0b18 30px, #0b0b18 60px
+  );
+  border-left: 2px solid #080814;
+}
+
+/* ── LEDGER (left side object) ──────────────── */
+.ledger {
+  position: absolute;
+  top: 100px;
+  left: 44px;
+  width: 138px;
+}
+.ledger-book {
+  background: #0c160c;
+  border: 1px solid #1e3a1e;
+  border-radius: 3px;
+  padding: 10px 12px;
+  box-shadow: inset 0 0 20px rgba(0,255,136,0.02), 0 0 16px rgba(0,255,136,0.04);
+}
+.obj-title {
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.ledger .obj-title { color: #2a6a2a; }
+.ledger-row {
+  font-size: 9px;
+  color: #449944;
+  line-height: 1;
+  padding: 4px 0;
+  border-bottom: 1px solid #1a2a1a;
+  display: flex;
+  justify-content: space-between;
+}
+.ledger-row:last-child { border-bottom: none; }
+.ledger-row .dim { color: #2a4a2a; }
+
+/* ── ALERT SHELF (right side object) ─────────── */
+.alert-shelf {
+  position: absolute;
+  top: 100px;
+  right: 44px;
+  width: 138px;
+}
+.shelf-obj {
+  background: #160c0a;
+  border: 1px solid #3a1a12;
+  border-left: 3px solid #ff4040;
+  border-radius: 0 3px 3px 0;
+  padding: 10px 12px;
+  box-shadow: 0 0 20px rgba(255,64,64,0.04);
+}
+.alert-shelf .obj-title { color: #aa3322; }
+.alert-item {
+  font-size: 9px;
+  color: #cc5544;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+.alert-action {
+  font-size: 8px;
+  color: #3a1a12;
+  border: 1px solid #3a1a12;
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: 'Cinzel', serif;
+}
+.alert-action:hover { color: #ff4040; border-color: #ff4040; }
+
+/* ── COMMAND TABLE ────────────────────────────── */
+.cmd-table {
+  position: absolute;
+  top: 155px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+}
+.table-top {
+  width: 300px;
+  height: 155px;
+  background: linear-gradient(160deg, #0a0e20 0%, #080c18 100%);
+  border: 1px solid #1e2a50;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 40px rgba(20,60,200,0.06),
+    0 0 30px rgba(20,60,200,0.05);
+}
+/* glowing grid on table surface */
+.table-top::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 24px, rgba(40,80,200,0.06) 25px),
+    repeating-linear-gradient(0deg,  transparent 0, transparent 24px, rgba(40,80,200,0.06) 25px);
+}
+/* center glow */
+.table-top::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(30,60,180,0.08) 0%, transparent 60%);
+}
+.table-map {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* SVG route map */
+.table-footer { font-family: 'Cinzel', serif; font-size: 7px; color: #1e2a50; letter-spacing: 3px; text-align: center; margin-top: 5px; }
+
+/* node on table */
+.map-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.node-box {
+  font-size: 7px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  border: 1px solid;
+  letter-spacing: 1px;
+  font-family: 'Cinzel', serif;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.node-box:hover { box-shadow: 0 0 8px currentColor; }
+.node-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+.mn-biff   { top: 18px; left: 50%; transform: translateX(-50%); }
+.mn-biff   .node-box { color: #f5c542; border-color: rgba(245,197,66,0.4); background: rgba(245,197,66,0.05); }
+.mn-biff   .node-dot { background: #f5c542; box-shadow: 0 0 6px #f5c542; }
+
+.mn-dylan  { bottom: 18px; left: 30px; }
+.mn-dylan  .node-box { color: #ff6b35; border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.04); }
+.mn-dylan  .node-dot { background: #ff6b35; animation: nodePulse 2s ease-in-out infinite; }
+@keyframes nodePulse { 0%,100%{box-shadow:0 0 4px #ff6b35} 50%{box-shadow:0 0 10px #ff6b35} }
+
+.mn-atlas  { bottom: 18px; left: 95px; }
+.mn-atlas  .node-box { color: #00aeff; border-color: rgba(0,174,255,0.3); background: rgba(0,174,255,0.04); }
+.mn-atlas  .node-dot { background: #00aeff; }
+
+.mn-roux   { bottom: 18px; right: 95px; }
+.mn-roux   .node-box { color: #44cc44; border-color: rgba(68,204,68,0.3); background: rgba(68,204,68,0.04); }
+.mn-roux   .node-dot { background: #44cc44; }
+
+.mn-prud   { bottom: 18px; right: 30px; }
+.mn-prud   .node-box { color: #cc88ff; border-color: rgba(200,136,255,0.3); background: rgba(200,136,255,0.04); }
+.mn-prud   .node-dot { background: #cc88ff; }
+
+/* ── CLAUDE ALCOVE ────────────────────────────── */
+.alcove {
+  position: absolute;
+  top: 230px;
+  width: 105px;
+}
+.alcove-left  { left: 40px; }
+.alcove-right { right: 40px; }
+.alcove-inner {
+  background: #0c0c1c;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  padding: 10px;
+  text-align: center;
+}
+/* the "station" — a glowing screen/desk surface */
+.station-screen {
+  width: 52px;
+  height: 32px;
+  margin: 0 auto 6px;
+  background: #060612;
+  border: 1px solid #2a2a44;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  position: relative;
+  overflow: hidden;
+}
+/* screen scanline */
+.station-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, transparent 0, transparent 2px, rgba(155,89,245,0.04) 3px);
+  pointer-events: none;
+}
+.alcove-name {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #9b59f5;
+  margin-bottom: 2px;
+}
+.alcove-role { font-size: 8px; color: #2a2a4a; margin-bottom: 6px; }
+.summon-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: #2a2a44;
+  border: 1px solid #2a2a44;
+  border-radius: 2px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  display: inline-block;
+}
+.summon-btn:hover { color: #9b59f5; border-color: #9b59f5; box-shadow: 0 0 8px rgba(155,89,245,0.2); }
+
+/* summon dashed lane */
+.lane-left {
+  position: absolute;
+  top: 258px;
+  left: 145px;
+  width: 165px;
+  height: 1px;
+  border-top: 1px dashed #151528;
+}
+.lane-right {
+  position: absolute;
+  top: 258px;
+  right: 145px;
+  width: 165px;
+  height: 1px;
+  border-top: 1px dashed #151528;
+}
+
+/* ── WAITING RAIL ─────────────────────────────── */
+.waiting-rail {
+  position: absolute;
+  bottom: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 480px;
+  text-align: center;
+}
+.rail-label {
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  color: #252540;
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+.rail-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #252540 20%, #252540 80%, transparent);
+  margin-bottom: 6px;
+}
+.rail-items {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rail-chip {
+  font-size: 9px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  letter-spacing: 0.5px;
+}
+.rail-chip:hover { box-shadow: 0 0 8px currentColor; }
+.chip-urgent { color: #ff6b35; border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.04); }
+.chip-normal { color: #3a3a5a; border-color: #252538; background: transparent; }
+.chip-normal:hover { color: #9b59f5; border-color: rgba(155,89,245,0.3); }
+
+/* ── DESCENT BAR (bottom of overseer) ─────────── */
+.descent {
+  height: 28px;
+  background: #060610;
+  border-top: 1px solid #0e0e1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.descent-arrow {
+  color: #1e1e32;
+  font-size: 10px;
+  animation: descFlow 1.8s ease-in-out infinite;
+}
+.descent-arrow:nth-child(2) { animation-delay: 0.4s; }
+.descent-arrow:nth-child(3) { animation-delay: 0.8s; }
+@keyframes descFlow { 0%,100%{color:#151528} 50%{color:#2a2a48} }
+.descent-label {
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  color: #1a1a30;
+  letter-spacing: 3px;
+  position: absolute;
+}
+
+/* ── CORRIDOR ─────────────────────────────────── */
+.corridor {
+  width: 900px;
+  max-width: 98vw;
+  height: 12px;
+  background: repeating-linear-gradient(
+    90deg,
+    #040408 0, #040408 3px,
+    #060610 4px, #060610 60px
+  );
+  border-left: 1px solid #0e0e1c;
+  border-right: 1px solid #0e0e1c;
+}
+
+/* ── HORSEMEN ─────────────────────────────────── */
+.horsemen {
+  width: 900px;
+  max-width: 98vw;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid #0e0e1c;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+.h-room {
+  position: relative;
+  border-right: 1px solid #0e0e1c;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.25s;
+}
+.h-room:last-child { border-right: none; }
+
+/* room atmosphere backgrounds */
+.h-dylan   { background: #09080e; }
+.h-atlas   { background: #080810; }
+.h-roux    { background: #08100a; }
+.h-prudence { background: #0a080e; }
+
+.h-room:hover { filter: brightness(1.15); }
+
+/* top border accent */
+.h-room::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.h-dylan::before    { background: linear-gradient(90deg, transparent, #ff6b35, transparent); }
+.h-atlas::before    { background: linear-gradient(90deg, transparent, #00aeff, transparent); }
+.h-roux::before     { background: linear-gradient(90deg, transparent, #44cc44, transparent); }
+.h-prudence::before { background: linear-gradient(90deg, transparent, #cc88ff, transparent); }
+
+/* floor inside each room */
+.h-floor {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg, rgba(255,255,255,0.008) 0, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 20px
+  ),
+  repeating-linear-gradient(
+    0deg, rgba(255,255,255,0.008) 0, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 20px
+  );
+}
+
+/* ambient glow per room */
+.h-room-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  pointer-events: none;
+}
+.h-dylan    .h-room-glow { background: radial-gradient(ellipse at 50% 0, rgba(255,107,53,0.06) 0%, transparent 70%); }
+.h-atlas    .h-room-glow { background: radial-gradient(ellipse at 50% 0, rgba(0,174,255,0.06) 0%, transparent 70%); }
+.h-roux     .h-room-glow { background: radial-gradient(ellipse at 50% 0, rgba(68,204,68,0.06) 0%, transparent 70%); }
+.h-prudence .h-room-glow { background: radial-gradient(ellipse at 50% 0, rgba(200,136,255,0.06) 0%, transparent 70%); }
+
+.h-header {
+  padding: 10px 12px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+.h-indicator {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.h-dylan    .h-indicator { background: #ff6b35; box-shadow: 0 0 6px #ff6b35; }
+.h-atlas    .h-indicator { background: #00aeff; }
+.h-roux     .h-indicator { background: #44cc44; }
+.h-prudence .h-indicator { background: #cc88ff; }
+
+.h-name {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.h-dylan    .h-name { color: #ff6b35; }
+.h-atlas    .h-name { color: #00aeff; }
+.h-roux     .h-name { color: #44cc44; }
+.h-prudence .h-name { color: #cc88ff; }
+
+.h-role { font-size: 8px; color: #252538; margin-left: auto; }
+
+/* hot badge */
+.h-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 7px;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+  z-index: 3;
+}
+.h-dylan .h-badge { color: #ff6b35; border: 1px solid rgba(255,107,53,0.3); background: rgba(255,107,53,0.08); }
+.h-prudence .h-badge { color: #cc88ff; border: 1px solid rgba(200,136,255,0.3); background: rgba(200,136,255,0.08); }
+
+/* room body — the "cell" you look into */
+.h-body {
+  height: 160px;
+  position: relative;
+}
+
+/* furniture objects inside each room */
+.h-desk {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0.5;
+}
+.h-dylan    .h-desk { background: #8b4a14; }
+.h-atlas    .h-desk { background: #0a2a4a; }
+.h-roux     .h-desk { background: #1a3a1a; }
+.h-prudence .h-desk { background: #2a1a3a; }
+
+/* character sprite */
+.h-sprite {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 26px;
+  line-height: 1;
+  animation: spriteBob 4s ease-in-out infinite;
+}
+.h-dylan    .h-sprite { filter: drop-shadow(0 0 6px rgba(255,107,53,0.4)); animation-delay: 0s; }
+.h-atlas    .h-sprite { filter: drop-shadow(0 0 6px rgba(0,174,255,0.4)); animation-delay: 0.8s; }
+.h-roux     .h-sprite { filter: drop-shadow(0 0 6px rgba(68,204,68,0.4)); animation-delay: 1.6s; }
+.h-prudence .h-sprite { filter: drop-shadow(0 0 6px rgba(200,136,255,0.4)); animation-delay: 2.4s; }
+@keyframes spriteBob {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%     { transform: translateX(-50%) translateY(-4px); }
+}
+
+/* monitor on desk */
+.h-monitor {
+  position: absolute;
+  bottom: 40px;
+  left: calc(50% + 20px);
+  width: 14px;
+  height: 10px;
+  border-radius: 1px;
+  border: 1px solid;
+  opacity: 0.4;
+}
+.h-dylan    .h-monitor { border-color: #ff6b35; background: rgba(255,107,53,0.1); }
+.h-atlas    .h-monitor { border-color: #00aeff; background: rgba(0,174,255,0.1); }
+.h-roux     .h-monitor { border-color: #44cc44; background: rgba(68,204,68,0.1); }
+.h-prudence .h-monitor { border-color: #cc88ff; background: rgba(200,136,255,0.1); }
+
+.h-status {
+  position: absolute;
+  bottom: 8px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 8px;
+  color: #252538;
+  letter-spacing: 0.3px;
+}
+
+/* ── DECREE BAR ─────────────────────────────── */
+.decree {
+  width: 900px;
+  max-width: 98vw;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 0 2px;
+}
+.decree-crown { font-size: 14px; filter: drop-shadow(0 0 4px rgba(245,197,66,0.4)); }
+.decree-input {
+  flex: 1;
+  background: #060610;
+  border: 1px solid #1e1e32;
+  border-radius: 3px;
+  padding: 9px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #e2e8f0;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.decree-input::placeholder { color: #1e1e32; }
+.decree-input:focus { border-color: #3a3010; box-shadow: 0 0 16px rgba(245,197,66,0.06); }
+.decree-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #f5c542;
+  background: #0e0b04;
+  border: 1px solid #3a2c10;
+  border-radius: 3px;
+  padding: 9px 22px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+.decree-btn:hover { background: #1a1408; box-shadow: 0 0 16px rgba(245,197,66,0.12); }
+</style>
+</head>
+<body>
+
+<!-- CROWN BAR -->
+<div class="crown-bar">
+  <span class="crown-title">⚜ DUNGEON MISSION CONTROL</span>
+  <span class="crown-stat">Net <b>$12,450</b></span>
+  <span class="crown-stat">Health <b>78%</b></span>
+  <div class="crown-spacer"></div>
+  <div class="crown-alert"><span class="blink">●</span> Rent due in 2 days</div>
+</div>
+
+<div class="dungeon">
+
+  <!-- ══════════ OVERSEER ROOM ══════════ -->
+  <div class="overseer">
+    <div class="os-wall-top"><span class="room-tag">Overseer Room</span></div>
+
+    <div class="os-floor">
+      <div class="wall-left"></div>
+      <div class="wall-right"></div>
+
+      <!-- Summon lanes -->
+      <div class="lane-left"></div>
+      <div class="lane-right"></div>
+
+      <!-- THRONE -->
+      <div class="throne-area">
+        <div class="dais"></div>
+        <div class="dais-steps"></div>
+        <div class="throne">
+          <div class="throne-back">
+            <span class="throne-crown-icon">♕</span>
+          </div>
+          <div class="armrests">
+            <div class="armrest"></div>
+            <div class="armrest"></div>
+          </div>
+          <div class="throne-seat"></div>
+        </div>
+        <div class="throne-label">B I F F</div>
+      </div>
+
+      <!-- MOTE -->
+      <div class="mote">
+        <div class="mote-speech">Rent alert — Dylan flagged</div>
+        <span class="mote-critter">🦡</span>
+        <div class="mote-shadow"></div>
+        <div class="mote-tag">M O T E</div>
+      </div>
+
+      <!-- LEDGER (left wall object) -->
+      <div class="ledger">
+        <div class="ledger-book">
+          <div class="obj-title">◎ Recent Changes</div>
+          <div class="ledger-row">+$420 freelance <span class="dim">2d ago</span></div>
+          <div class="ledger-row">Netflix cut <span class="dim">5d ago</span></div>
+          <div class="ledger-row">Gym +$10/mo <span class="dim">6d ago</span></div>
+        </div>
+      </div>
+
+      <!-- ALERT SHELF (right wall object) -->
+      <div class="alert-shelf">
+        <div class="shelf-obj">
+          <div class="obj-title">⚡ Urgent</div>
+          <div class="alert-item">Rent $1,200<br>due in 2 days</div>
+          <div class="alert-action">→ APPROVE PAY</div>
+        </div>
+      </div>
+
+      <!-- COMMAND TABLE -->
+      <div class="cmd-table">
+        <div class="table-top">
+          <!-- SVG route lines -->
+          <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="150" y1="38" x2="50"  y2="120" stroke="#1e2a50" stroke-width="1" stroke-dasharray="4,5"/>
+            <line x1="150" y1="38" x2="103" y2="120" stroke="#1e2a50" stroke-width="1" stroke-dasharray="4,5"/>
+            <line x1="150" y1="38" x2="197" y2="120" stroke="#1e2a50" stroke-width="1" stroke-dasharray="4,5"/>
+            <line x1="150" y1="38" x2="250" y2="120" stroke="#1e2a50" stroke-width="1" stroke-dasharray="4,5"/>
+            <!-- active line to Dylan pulsing -->
+            <line x1="150" y1="38" x2="50" y2="120" stroke="#ff6b35" stroke-width="1" stroke-dasharray="4,5" opacity="0.3">
+              <animate attributeName="stroke-dashoffset" values="0;-18" dur="1s" repeatCount="indefinite"/>
+            </line>
+          </svg>
+          <!-- nodes -->
+          <div class="map-node mn-biff">
+            <div class="node-box">BIFF</div>
+            <div class="node-dot"></div>
+          </div>
+          <div class="map-node mn-dylan">
+            <div class="node-dot"></div>
+            <div class="node-box">DYLAN</div>
+          </div>
+          <div class="map-node mn-atlas">
+            <div class="node-dot"></div>
+            <div class="node-box">ATLAS</div>
+          </div>
+          <div class="map-node mn-roux">
+            <div class="node-dot"></div>
+            <div class="node-box">ROUX</div>
+          </div>
+          <div class="map-node mn-prud">
+            <div class="node-dot"></div>
+            <div class="node-box">PRUD.</div>
+          </div>
+        </div>
+        <div class="table-footer">COMMAND TABLE · ROUTE MAP</div>
+      </div>
+
+      <!-- CLAUDE ALCOVE -->
+      <div class="alcove alcove-left">
+        <div class="alcove-inner">
+          <div class="station-screen">🤖</div>
+          <div class="alcove-name">CLAUDE</div>
+          <div class="alcove-role">deep counsel</div>
+          <div class="summon-btn">SUMMON</div>
+        </div>
+      </div>
+
+      <!-- PETE ALCOVE -->
+      <div class="alcove alcove-right">
+        <div class="alcove-inner">
+          <div class="station-screen">📡</div>
+          <div class="alcove-name">PETE</div>
+          <div class="alcove-role">outside reach</div>
+          <div class="summon-btn">SUMMON</div>
+        </div>
+      </div>
+
+      <!-- WAITING RAIL -->
+      <div class="waiting-rail">
+        <div class="rail-label">WAITING ON YOU</div>
+        <div class="rail-line"></div>
+        <div class="rail-items">
+          <div class="rail-chip chip-urgent">Pay rent?</div>
+          <div class="rail-chip chip-normal">Approve gym plan</div>
+          <div class="rail-chip chip-normal">Review Roux menu</div>
+        </div>
+      </div>
+
+    </div><!-- /os-floor -->
+
+    <!-- descent arrows -->
+    <div class="descent">
+      <span class="descent-arrow">▼</span>
+      <span class="descent-arrow">▼</span>
+      <span class="descent-arrow">▼</span>
+    </div>
+  </div><!-- /overseer -->
+
+  <!-- CORRIDOR -->
+  <div class="corridor"></div>
+
+  <!-- ══════════ FOUR HORSEMEN ══════════ -->
+  <div class="horsemen">
+
+    <!-- DYLAN -->
+    <div class="h-room h-dylan">
+      <div class="h-floor"></div>
+      <div class="h-room-glow"></div>
+      <div class="h-header">
+        <div class="h-indicator"></div>
+        <span class="h-name">DYLAN</span>
+        <span class="h-role">treasury</span>
+      </div>
+      <div class="h-badge">⚡ HOT</div>
+      <div class="h-body">
+        <div class="h-sprite">📊</div>
+        <div class="h-desk"></div>
+        <div class="h-monitor"></div>
+        <div class="h-status">Rent due · Budget 78%</div>
+      </div>
+    </div>
+
+    <!-- ATLAS -->
+    <div class="h-room h-atlas">
+      <div class="h-floor"></div>
+      <div class="h-room-glow"></div>
+      <div class="h-header">
+        <div class="h-indicator"></div>
+        <span class="h-name">ATLAS</span>
+        <span class="h-role">body · training</span>
+      </div>
+      <div class="h-body">
+        <div class="h-sprite">💪</div>
+        <div class="h-desk"></div>
+        <div class="h-monitor"></div>
+        <div class="h-status">Recovery day · Legs tmrw</div>
+      </div>
+    </div>
+
+    <!-- ROUX -->
+    <div class="h-room h-roux">
+      <div class="h-floor"></div>
+      <div class="h-room-glow"></div>
+      <div class="h-header">
+        <div class="h-indicator"></div>
+        <span class="h-name">ROUX</span>
+        <span class="h-role">food · prep</span>
+      </div>
+      <div class="h-body">
+        <div class="h-sprite">🍲</div>
+        <div class="h-desk"></div>
+        <div class="h-monitor"></div>
+        <div class="h-status">Meal plan ready · 5 recipes</div>
+      </div>
+    </div>
+
+    <!-- PRUDENCE -->
+    <div class="h-room h-prudence">
+      <div class="h-floor"></div>
+      <div class="h-room-glow"></div>
+      <div class="h-header">
+        <div class="h-indicator"></div>
+        <span class="h-name">PRUDENCE</span>
+        <span class="h-role">savings</span>
+      </div>
+      <div class="h-badge">3 finds</div>
+      <div class="h-body">
+        <div class="h-sprite">🔍</div>
+        <div class="h-desk"></div>
+        <div class="h-monitor"></div>
+        <div class="h-status">Found $62 in cuts</div>
+      </div>
+    </div>
+
+  </div><!-- /horsemen -->
+
+  <!-- DECREE -->
+  <div class="decree">
+    <span class="decree-crown">♕</span>
+    <input class="decree-input" type="text" placeholder="Issue a decree to the dungeon...">
+    <button class="decree-btn">DECREE</button>
+  </div>
+
+</div><!-- /dungeon -->
+
+</body>
+</html>

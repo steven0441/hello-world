@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Mission Control — Overseer Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --void:    #080810;
+  --abyss:   #0f0f1a;
+  --shadow:  #1e1e2e;
+  --gold:    #f5c542;
+  --purple:  #9b59f5;
+  --orange:  #ff6b35;
+  --green:   #00ff88;
+  --red:     #ff4040;
+  --ghost:   #e2e8f0;
+  --dim:     #4a5568;
+  --mono:    #a0aec0;
+  --carpet:  #d4c9b0;
+  --wall:    #f0ebe0;
+  --stone:   #2a2a3a;
+}
+
+body {
+  background: var(--void);
+  color: var(--ghost);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── TOP BAR ─────────────────────────────────────── */
+.topbar {
+  background: #050509;
+  border-bottom: 1px solid #1a1a2a;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  flex-shrink: 0;
+}
+.topbar-sep { color: #2a2a3a; flex-shrink: 0; }
+.topbar-stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--mono);
+}
+.topbar-stat .val { color: var(--green); }
+.topbar-alert {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.alert-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.zoom-hint {
+  font-size: 10px;
+  color: #2a2a3a;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+}
+
+/* ── MAIN STAGE ─────────────────────────────────── */
+.stage {
+  padding: 24px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ── OVERSEER ROOM ──────────────────────────────── */
+.overseer-room {
+  width: 860px;
+  max-width: 100%;
+  background: #13131f;
+  border: 1px solid #2a2a40;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  overflow: visible;
+  box-shadow: 0 0 40px rgba(155,89,245,0.08);
+}
+
+/* Stone wall top */
+.room-wall-top {
+  height: 24px;
+  background: repeating-linear-gradient(
+    90deg,
+    #1a1a28 0px, #1a1a28 59px,
+    #141420 60px, #141420 61px
+  );
+  border-bottom: 2px solid #0a0a14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.room-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: #3a3a5a;
+  text-transform: uppercase;
+}
+
+/* Room floor */
+.room-floor {
+  height: 420px;
+  position: relative;
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 59px, rgba(255,255,255,0.015) 60px),
+    repeating-linear-gradient(0deg,  transparent 0, transparent 59px, rgba(255,255,255,0.015) 60px),
+    #0e0e1c;
+}
+
+/* ── THRONE DAIS ── */
+.throne-dais {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  text-align: center;
+}
+.dais-platform {
+  width: 180px;
+  height: 14px;
+  background: linear-gradient(180deg, #2a2218 0%, #1a150e 100%);
+  border: 1px solid #4a3c20;
+  border-radius: 3px;
+  margin: 0 auto 4px;
+  box-shadow: 0 0 20px rgba(245,197,66,0.12);
+}
+.throne-chair {
+  width: 64px;
+  height: 72px;
+  margin: 0 auto;
+  position: relative;
+}
+/* throne back */
+.throne-back {
+  width: 64px;
+  height: 52px;
+  background: linear-gradient(180deg, #2e2010 0%, #1e1608 100%);
+  border: 1px solid #6a4e20;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  box-shadow: inset 0 0 20px rgba(245,197,66,0.08), 0 0 16px rgba(245,197,66,0.15);
+}
+.throne-crown {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  filter: drop-shadow(0 0 6px rgba(245,197,66,0.6));
+  animation: crownGlow 3s ease-in-out infinite;
+}
+@keyframes crownGlow { 0%,100%{filter:drop-shadow(0 0 6px rgba(245,197,66,0.6))} 50%{filter:drop-shadow(0 0 12px rgba(245,197,66,0.9))} }
+.throne-seat {
+  width: 64px;
+  height: 20px;
+  background: linear-gradient(180deg, #3a2a14 0%, #1e1608 100%);
+  border: 1px solid #5a4018;
+  border-radius: 0 0 3px 3px;
+}
+.throne-name {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
+.throne-sub {
+  font-size: 9px;
+  color: #4a3a20;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ── MOTE ── */
+.mote-perch {
+  position: absolute;
+  top: 28px;
+  left: calc(50% - 110px);
+  width: 72px;
+  text-align: center;
+}
+.mote-body {
+  font-size: 26px;
+  display: block;
+  animation: moteFloat 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(155,89,245,0.5));
+  cursor: pointer;
+  line-height: 1;
+}
+@keyframes moteFloat {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-5px) rotate(3deg); }
+}
+.mote-glow {
+  width: 40px;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(155,89,245,0.3) 0%, transparent 70%);
+  margin: 2px auto 0;
+  animation: moteFloat 2.8s ease-in-out infinite;
+}
+.mote-label {
+  font-size: 8px;
+  color: var(--purple);
+  letter-spacing: 2px;
+  margin-top: 4px;
+  font-family: 'Cinzel', serif;
+}
+.mote-bubble {
+  position: absolute;
+  top: -18px;
+  left: 76px;
+  background: #1a1428;
+  border: 1px solid #3a2a5a;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 9px;
+  color: var(--purple);
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.mote-bubble::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-right-color: #3a2a5a;
+}
+
+/* ── COMMAND TABLE ── */
+.command-table {
+  position: absolute;
+  top: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+}
+.table-surface {
+  width: 280px;
+  height: 140px;
+  background: linear-gradient(160deg, #121830 0%, #0a0f1e 100%);
+  border: 1px solid #2a3860;
+  border-radius: 6px;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0,100,255,0.06), inset 0 0 40px rgba(0,50,150,0.08);
+  overflow: hidden;
+}
+/* Map grid on table */
+.table-grid {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 27px, rgba(50,100,200,0.08) 28px),
+    repeating-linear-gradient(0deg,  transparent 0, transparent 27px, rgba(50,100,200,0.08) 28px);
+}
+/* Room nodes on table */
+.table-node {
+  position: absolute;
+  width: 28px;
+  height: 18px;
+  border: 1px solid;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.5px;
+}
+.tn-overseer { top: 14px; left: 50%; transform: translateX(-50%); border-color: var(--gold); color: var(--gold); background: rgba(245,197,66,0.06); }
+.tn-dylan    { bottom: 20px; left: 20px; border-color: #ff6b35; color: #ff6b35; background: rgba(255,107,53,0.06); }
+.tn-atlas    { bottom: 20px; left: 80px; border-color: #00aeff; color: #00aeff; background: rgba(0,174,255,0.06); }
+.tn-roux     { bottom: 20px; right: 80px; border-color: #44cc44; color: #44cc44; background: rgba(68,204,68,0.06); }
+.tn-prudence { bottom: 20px; right: 20px; border-color: #cc88ff; color: #cc88ff; background: rgba(200,136,255,0.06); }
+/* Route lines on table */
+.table-routes {
+  position: absolute;
+  inset: 0;
+}
+.table-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  color: #2a3860;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ── ALERT SHELF (right wall) ── */
+.alert-shelf {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 130px;
+}
+.shelf-board {
+  background: #1a0f0a;
+  border: 1px solid #4a1a0a;
+  border-left: 3px solid var(--red);
+  border-radius: 0 3px 3px 0;
+  padding: 8px 10px;
+}
+.shelf-title {
+  font-size: 8px;
+  color: var(--red);
+  letter-spacing: 2px;
+  font-family: 'Cinzel', serif;
+  margin-bottom: 6px;
+}
+.shelf-item {
+  font-size: 9px;
+  color: #cc6644;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+}
+.shelf-peg {
+  width: 100%;
+  height: 3px;
+  background: #2a1a12;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+/* ── WAITING RAIL ── */
+.waiting-rail {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+}
+.rail-bar {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #3a3a5a 15%, #3a3a5a 85%, transparent);
+  margin-bottom: 8px;
+  position: relative;
+}
+.rail-title {
+  font-size: 8px;
+  color: #3a3a5a;
+  letter-spacing: 2px;
+  font-family: 'Cinzel', serif;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.rail-tokens {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.rail-token {
+  background: #12121e;
+  border: 1px solid #3a3a5a;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: 9px;
+  color: var(--mono);
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.rail-token:hover { border-color: var(--gold); color: var(--gold); }
+.rail-token.urgent { border-color: var(--orange); color: var(--orange); }
+
+/* ── RECENT LEDGER (left wall) ── */
+.ledger-shelf {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 130px;
+}
+.ledger-book {
+  background: #0f1a0f;
+  border: 1px solid #1a3a1a;
+  border-right: 3px solid var(--green);
+  border-radius: 3px 0 0 3px;
+  padding: 8px 10px;
+}
+.ledger-title {
+  font-size: 8px;
+  color: var(--green);
+  letter-spacing: 2px;
+  font-family: 'Cinzel', serif;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+.ledger-entry {
+  font-size: 9px;
+  color: #449944;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.7;
+  opacity: 0.8;
+}
+.ledger-entry + .ledger-entry { border-top: 1px solid #1a2a1a; margin-top: 3px; padding-top: 3px; }
+
+/* ── CLAUDE ALCOVE ── */
+.alcove-claude {
+  position: absolute;
+  top: 220px;
+  left: 12px;
+  width: 110px;
+}
+.alcove-nook {
+  background: #0e0e1e;
+  border: 1px solid #2a2a4a;
+  border-radius: 3px;
+  padding: 8px;
+  text-align: center;
+}
+.alcove-station {
+  width: 50px;
+  height: 36px;
+  background: #12121e;
+  border: 1px solid #2a2a4a;
+  border-radius: 3px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.alcove-name { font-size: 8px; color: var(--purple); letter-spacing: 2px; font-family: 'Cinzel', serif; }
+.alcove-status { font-size: 8px; color: #4a4a6a; font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+.alcove-summon {
+  margin-top: 5px;
+  font-size: 8px;
+  color: #3a2a5a;
+  border: 1px solid #2a1a4a;
+  border-radius: 2px;
+  padding: 2px 6px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  font-family: 'Cinzel', serif;
+  transition: color 0.2s, border-color 0.2s;
+}
+.alcove-summon:hover { color: var(--purple); border-color: var(--purple); }
+
+/* ── PETE ALCOVE ── */
+.alcove-pete {
+  position: absolute;
+  top: 220px;
+  right: 12px;
+  width: 110px;
+}
+
+/* ── SUMMON LANE (dashed line from alcove to throne) ── */
+.summon-lane {
+  position: absolute;
+  top: 100px;
+  left: 124px;
+  width: 170px;
+  height: 1px;
+  border-top: 1px dashed #1a1a30;
+  pointer-events: none;
+}
+.summon-lane-r {
+  position: absolute;
+  top: 100px;
+  right: 124px;
+  width: 170px;
+  height: 1px;
+  border-top: 1px dashed #1a1a30;
+  pointer-events: none;
+}
+
+/* ── DESCENT ROUTE ── */
+.descent-route {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-bottom: 0;
+}
+.descent-arrow {
+  font-size: 10px;
+  color: #2a2a3a;
+  line-height: 1;
+  animation: descPulse 2s ease-in-out infinite;
+}
+.descent-arrow:nth-child(2) { animation-delay: 0.3s; opacity: 0.7; }
+.descent-arrow:nth-child(3) { animation-delay: 0.6s; opacity: 0.4; }
+@keyframes descPulse { 0%,100%{opacity:0.2} 50%{opacity:0.8} }
+
+/* ── WALL (bottom of overseer room, iron-bar style) ── */
+.room-wall-bottom {
+  height: 20px;
+  background: repeating-linear-gradient(
+    90deg,
+    #0a0a14 0px, #0a0a14 3px,
+    #141420 4px, #141420 54px,
+    #0a0a14 55px, #0a0a14 58px,
+    #141420 59px, #141420 60px
+  );
+  border-top: 2px solid #0a0a14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* ── HORSEMEN FIELD ─────────────────────────────── */
+.horsemen-field {
+  width: 860px;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid #1e1e2e;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.horseman-room {
+  background: #0b0b18;
+  border-right: 1px solid #1e1e2e;
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.horseman-room:last-child { border-right: none; }
+.horseman-room:hover { background: #0e0e1e; }
+
+.hroom-header {
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid #1e1e2e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hroom-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.hroom-name { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 2px; }
+.hroom-role { font-size: 8px; color: #3a3a4a; font-family: 'JetBrains Mono', monospace; margin-left: auto; }
+
+.hroom-body {
+  height: 130px;
+  position: relative;
+  overflow: hidden;
+}
+/* Floor inside horseman room */
+.hroom-floor {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg, transparent 0, transparent 19px, rgba(255,255,255,0.012) 20px
+  ),
+  repeating-linear-gradient(
+    0deg, transparent 0, transparent 19px, rgba(255,255,255,0.012) 20px
+  );
+}
+.hroom-sprite {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+.hroom-desk {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 0.4;
+}
+.hroom-status {
+  position: absolute;
+  bottom: 6px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #3a3a5a;
+}
+.hroom-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 7px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+}
+
+/* Dylan — orange/treasury */
+.h-dylan .hroom-dot  { background: var(--orange); }
+.h-dylan .hroom-name { color: var(--orange); }
+.h-dylan .hroom-desk { background: #8b6914; }
+.h-dylan .hroom-sprite { color: var(--orange); }
+.h-dylan .hroom-badge { background: rgba(255,107,53,0.12); color: var(--orange); border: 1px solid rgba(255,107,53,0.3); }
+
+/* Atlas — blue/body */
+.h-atlas .hroom-dot  { background: #00aeff; }
+.h-atlas .hroom-name { color: #00aeff; }
+.h-atlas .hroom-desk { background: #0a3a5a; }
+.h-atlas .hroom-sprite { color: #00aeff; }
+
+/* Roux — green/food */
+.h-roux .hroom-dot  { background: #44cc44; }
+.h-roux .hroom-name { color: #44cc44; }
+.h-roux .hroom-desk { background: #1a3a1a; }
+.h-roux .hroom-sprite { color: #44cc44; }
+
+/* Prudence — violet/savings */
+.h-prudence .hroom-dot  { background: #cc88ff; }
+.h-prudence .hroom-name { color: #cc88ff; }
+.h-prudence .hroom-desk { background: #2a1a3a; }
+.h-prudence .hroom-sprite { color: #cc88ff; }
+.h-prudence .hroom-badge { background: rgba(200,136,255,0.1); color: #cc88ff; border: 1px solid rgba(200,136,255,0.3); }
+
+/* ── GOD INPUT BAR ──────────────────────────────── */
+.decree-bar {
+  width: 860px;
+  max-width: 100%;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.decree-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 2px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.decree-input {
+  flex: 1;
+  background: #0a0a14;
+  border: 1px solid #2a2a3a;
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ghost);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.decree-input:focus { border-color: var(--gold); }
+.decree-input::placeholder { color: #2a2a3a; }
+.decree-btn {
+  background: #1e1608;
+  border: 1px solid #4a3a18;
+  border-radius: 3px;
+  padding: 8px 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+.decree-btn:hover { background: #2a1e0a; box-shadow: 0 0 12px rgba(245,197,66,0.2); }
+
+/* ── ZOOM CONTROLS ──────────────────────────────── */
+.zoom-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.zoom-btn {
+  width: 32px; height: 32px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  color: var(--mono);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+.zoom-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── NOTE ─────────────────────────────────────────── */
+.footnote {
+  text-align: center;
+  font-size: 9px;
+  color: #1a1a2a;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+  padding: 12px 0 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR: minimal chrome only -->
+<div class="topbar">
+  <span class="topbar-title">⚜ DUNGEON MISSION CONTROL</span>
+  <span class="topbar-sep">│</span>
+  <span class="topbar-stat">Net Worth <span class="val">$12,450</span></span>
+  <span class="topbar-sep">│</span>
+  <span class="topbar-stat">Budget Health <span class="val">78%</span></span>
+  <div class="topbar-alert">
+    <div class="alert-dot"></div>
+    Rent due in 2 days
+  </div>
+  <span class="zoom-hint">scroll to zoom</span>
+</div>
+
+<div class="stage">
+
+  <!-- ═══ OVERSEER ROOM ═══ -->
+  <div class="overseer-room">
+    <div class="room-wall-top">
+      <span class="room-label">Overseer Room</span>
+    </div>
+
+    <div class="room-floor">
+
+      <!-- Summon lanes (dashed, decorative) -->
+      <div class="summon-lane"></div>
+      <div class="summon-lane-r"></div>
+
+      <!-- THRONE DAIS -->
+      <div class="throne-dais">
+        <div class="dais-platform"></div>
+        <div class="throne-chair">
+          <div class="throne-back">
+            <span class="throne-crown">♕</span>
+          </div>
+          <div class="throne-seat"></div>
+        </div>
+        <div class="throne-name">BIFF</div>
+        <div class="throne-sub">God · Authority · Overseer</div>
+      </div>
+
+      <!-- MOTE (rune-ferret familiar) -->
+      <div class="mote-perch">
+        <div class="mote-bubble">Rent alert — Dylan flagged</div>
+        <span class="mote-body">🦡</span>
+        <div class="mote-glow"></div>
+        <div class="mote-label">MOTE</div>
+      </div>
+
+      <!-- ALERT SHELF (right wall) -->
+      <div class="alert-shelf">
+        <div class="shelf-peg"></div>
+        <div class="shelf-board">
+          <div class="shelf-title">⚡ URGENT</div>
+          <div class="shelf-item">Rent $1,200<br>due in 2 days<br>→ approve pay?</div>
+        </div>
+      </div>
+
+      <!-- RECENT LEDGER (left wall) -->
+      <div class="ledger-shelf">
+        <div class="ledger-book">
+          <div class="ledger-title">◎ CHANGES</div>
+          <div class="ledger-entry">+$420 freelance</div>
+          <div class="ledger-entry">Netflix cancelled</div>
+          <div class="ledger-entry">Gym ↑ $10/mo</div>
+        </div>
+      </div>
+
+      <!-- COMMAND TABLE (center) -->
+      <div class="command-table">
+        <div class="table-surface">
+          <div class="table-grid"></div>
+          <!-- Room nodes on the map surface -->
+          <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Routes from overseer down to horsemen -->
+            <line x1="140" y1="32" x2="50"  y2="108" stroke="#2a3860" stroke-width="1" stroke-dasharray="3,4"/>
+            <line x1="140" y1="32" x2="97"  y2="108" stroke="#2a3860" stroke-width="1" stroke-dasharray="3,4"/>
+            <line x1="140" y1="32" x2="184" y2="108" stroke="#2a3860" stroke-width="1" stroke-dasharray="3,4"/>
+            <line x1="140" y1="32" x2="230" y2="108" stroke="#2a3860" stroke-width="1" stroke-dasharray="3,4"/>
+          </svg>
+          <div class="table-node tn-overseer">BIFF</div>
+          <div class="table-node tn-dylan">DYLAN</div>
+          <div class="table-node tn-atlas">ATLAS</div>
+          <div class="table-node tn-roux">ROUX</div>
+          <div class="table-node tn-prudence">PRUD.</div>
+        </div>
+        <div class="table-label">COMMAND TABLE — ROUTE MAP</div>
+      </div>
+
+      <!-- CLAUDE ALCOVE (left side) -->
+      <div class="alcove-claude">
+        <div class="alcove-nook">
+          <div class="alcove-station">🤖</div>
+          <div class="alcove-name">CLAUDE</div>
+          <div class="alcove-status">deep counsel</div>
+          <div class="alcove-summon">SUMMON</div>
+        </div>
+      </div>
+
+      <!-- PETE ALCOVE (right side) -->
+      <div class="alcove-pete">
+        <div class="alcove-nook">
+          <div class="alcove-station">📡</div>
+          <div class="alcove-name">PETE</div>
+          <div class="alcove-status">outside reach</div>
+          <div class="alcove-summon">SUMMON</div>
+        </div>
+      </div>
+
+      <!-- WAITING-ON-BIFF RAIL -->
+      <div class="waiting-rail">
+        <div class="rail-title">WAITING ON YOU</div>
+        <div class="rail-bar"></div>
+        <div class="rail-tokens">
+          <div class="rail-token urgent">Pay rent?</div>
+          <div class="rail-token">Approve gym plan</div>
+          <div class="rail-token">Review Roux menu</div>
+        </div>
+      </div>
+
+      <!-- DESCENT ROUTE -->
+      <div class="descent-route">
+        <div class="descent-arrow">▼</div>
+        <div class="descent-arrow">▼</div>
+        <div class="descent-arrow">▼</div>
+      </div>
+
+    </div><!-- /room-floor -->
+
+    <div class="room-wall-bottom"></div>
+  </div><!-- /overseer-room -->
+
+  <!-- ═══ FOUR HORSEMEN ═══ -->
+  <div class="horsemen-field">
+
+    <!-- Dylan — Treasury -->
+    <div class="horseman-room h-dylan">
+      <div class="hroom-header">
+        <div class="hroom-dot"></div>
+        <span class="hroom-name">DYLAN</span>
+        <span class="hroom-role">treasury</span>
+      </div>
+      <div class="hroom-body">
+        <div class="hroom-floor"></div>
+        <div class="hroom-badge">⚡ URGENT</div>
+        <div class="hroom-sprite">📊</div>
+        <div class="hroom-desk"></div>
+        <div class="hroom-status">Rent due · Budget 78%</div>
+      </div>
+    </div>
+
+    <!-- Atlas — Body -->
+    <div class="horseman-room h-atlas">
+      <div class="hroom-header">
+        <div class="hroom-dot"></div>
+        <span class="hroom-name">ATLAS</span>
+        <span class="hroom-role">body · training</span>
+      </div>
+      <div class="hroom-body">
+        <div class="hroom-floor"></div>
+        <div class="hroom-sprite">💪</div>
+        <div class="hroom-desk"></div>
+        <div class="hroom-status">Recovery day · Legs tmrw</div>
+      </div>
+    </div>
+
+    <!-- Roux — Food -->
+    <div class="horseman-room h-roux">
+      <div class="hroom-header">
+        <div class="hroom-dot"></div>
+        <span class="hroom-name">ROUX</span>
+        <span class="hroom-role">food · prep</span>
+      </div>
+      <div class="hroom-body">
+        <div class="hroom-floor"></div>
+        <div class="hroom-sprite">🍲</div>
+        <div class="hroom-desk"></div>
+        <div class="hroom-status">Meal plan ready · 5 recipes</div>
+      </div>
+    </div>
+
+    <!-- Prudence — Savings -->
+    <div class="horseman-room h-prudence">
+      <div class="hroom-header">
+        <div class="hroom-dot"></div>
+        <span class="hroom-name">PRUDENCE</span>
+        <span class="hroom-role">savings · cuts</span>
+      </div>
+      <div class="hroom-body">
+        <div class="hroom-floor"></div>
+        <div class="hroom-badge">3 finds</div>
+        <div class="hroom-sprite">🔍</div>
+        <div class="hroom-desk"></div>
+        <div class="hroom-status">Found $62 in cuts</div>
+      </div>
+    </div>
+
+  </div><!-- /horsemen-field -->
+
+  <!-- GOD DECREE BAR -->
+  <div class="decree-bar">
+    <span class="decree-label">♕ DECREE</span>
+    <input class="decree-input" type="text" placeholder="Issue command to the dungeon...">
+    <button class="decree-btn">ISSUE</button>
+  </div>
+
+</div><!-- /stage -->
+
+<!-- Zoom controls -->
+<div class="zoom-controls">
+  <button class="zoom-btn" title="Zoom in">+</button>
+  <button class="zoom-btn" title="Zoom out">−</button>
+  <button class="zoom-btn" title="Reset view" style="font-size:11px;font-family:'Cinzel',serif;letter-spacing:0">⟳</button>
+</div>
+
+<div class="footnote">dungeon mission control — overseer room mockup — scroll/click to zoom into rooms</div>
+
+</body>
+</html>
